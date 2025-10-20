@@ -7,19 +7,21 @@
 
 ## 🔴 CRITICAL ISSUES
 
-### Issue #1: [To be filled during testing]
-**Status**:
-**Priority**:
-**Page/Component**:
+### Issue #1: Database Seed Script Field Name Mismatch
+**Status**: FIXED
+**Priority**: CRITICAL
+**Page/Component**: prisma/seed.ts
 **Steps to Reproduce**:
-1.
-2.
-3.
+1. Run `npm run prisma:seed`
+2. Script fails at item creation
 
-**Expected Behavior**:
-**Actual Behavior**:
-**Error Message**:
+**Expected Behavior**: Items should be created successfully
+**Actual Behavior**: Script fails with "Unknown argument `unitPrice`"
+**Error Message**: `Unknown argument 'unitPrice'. Available options are marked with ?.`
 **Fix Applied**:
+- Changed `unitPrice` to `suggestedPrice` in Item model creation (lines 136, 145)
+- Changed `item.unitPrice` to `item.suggestedPrice` when creating PO line items (lines 170, 179)
+- Added missing `lineNumber` field to POLineItem creation (lines 173, 182)
 
 ---
 
@@ -70,5 +72,5 @@
 - **Critical**: 0
 - **Medium**: 0
 - **Low**: 0
-- **Fixed**: 0
-- **Total**: 0
+- **Fixed**: 1
+- **Total**: 1

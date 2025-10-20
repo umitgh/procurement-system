@@ -1,284 +1,201 @@
 // prisma/seed.ts
-// Seed initial data for the Procurement System
+// Database seeding script for testing
 
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // 1. Create initial admin user (CTO/SUPER_ADMIN)
-  console.log('Creating admin user...');
-  const adminPasswordHash = await bcrypt.hash('Admin123!', 10);
+  // Clear existing data
+  console.log('🧹 Cleaning existing data...');
+  await prisma.approval.deleteMany();
+  await prisma.pOLineItem.deleteMany();
+  await prisma.purchaseOrder.deleteMany();
+  await prisma.character.deleteMany();
+  await prisma.item.deleteMany();
+  await prisma.supplier.deleteMany();
+  await prisma.company.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.user.deleteMany();
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@company.com' },
-    update: {},
-    create: {
-      email: 'admin@company.com',
-      name: 'System Administrator',
-      passwordHash: adminPasswordHash,
+  console.log('✅ Existing data cleared');
+
+  // Create Users
+  console.log('👤 Creating users...');
+
+  const hashedPassword = await bcrypt.hash('password123', 10);
+
+  const superAdmin = await prisma.user.create({
+    data: {
+      email: 'superadmin@test.com',
+      name: 'Super Admin',
+      passwordHash: hashedPassword,
       role: 'SUPER_ADMIN',
-      approvalLimit: 999999999, // Unlimited
       isActive: true,
-      language: 'he',
     },
   });
 
-  console.log(`✓ Admin user created: ${admin.email}`);
+  const admin = await prisma.user.create({
+    data: {
+      email: 'admin@test.com',
+      name: 'Admin User',
+      passwordHash: hashedPassword,
+      role: 'ADMIN',
+      isActive: true,
+    },
+  });
 
-  // 2. Create character lists (Service/Item/Manpower)
-  console.log('Creating character lists...');
+  const cfo = await prisma.user.create({
+    data: {
+      email: 'cfo@test.com',
+      name: 'CFO Manager',
+      passwordHash: hashedPassword,
+      role: 'MANAGER',
+      approvalLimit: 1000000,
+      isActive: true,
+    },
+  });
 
-  // Character1: Service/Item/Manpower
-  const char1Values = [
-    { value: 'שירות', valueEn: 'Service', order: 1 },
-    { value: 'פריט', valueEn: 'Item', order: 2 },
-    { value: 'כוח אדם', valueEn: 'Manpower', order: 3 },
-  ];
+  const manager = await prisma.user.create({
+    data: {
+      email: 'manager@test.com',
+      name: 'Team Manager',
+      passwordHash: hashedPassword,
+      role: 'MANAGER',
+      managerId: cfo.id,
+      approvalLimit: 100000,
+      isActive: true,
+    },
+  });
 
-  for (const char of char1Values) {
-    await prisma.character.upsert({
-      where: {
-        type_value: {
-          type: 'character1',
-          value: char.value,
-        },
-      },
-      update: {},
-      create: {
-        type: 'character1',
-        value: char.value,
-        valueEn: char.valueEn,
-        order: char.order,
-        isActive: true,
-      },
-    });
-  }
+  const user1 = await prisma.user.create({
+    data: {
+      email: 'user1@test.com',
+      name: 'Regular User 1',
+      passwordHash: hashedPassword,
+      role: 'USER',
+      managerId: manager.id,
+      isActive: true,
+    },
+  });
 
-  // Character2: Hardware/Software/Cloud Service/Consulting/Training
-  const char2Values = [
-    { value: 'חומרה', valueEn: 'Hardware', order: 1 },
-    { value: 'תוכנה', valueEn: 'Software', order: 2 },
-    { value: 'שירותי ענן', valueEn: 'Cloud Service', order: 3 },
-    { value: 'ייעוץ', valueEn: 'Consulting', order: 4 },
-    { value: 'הדרכה', valueEn: 'Training', order: 5 },
-  ];
+  console.log('✅ Created 5 users');
+  console.log('   📧 Email: superadmin@test.com | Password: password123');
+  console.log('   📧 Email: manager@test.com | Password: password123');
+  console.log('   📧 Email: user1@test.com | Password: password123');
 
-  for (const char of char2Values) {
-    await prisma.character.upsert({
-      where: {
-        type_value: {
-          type: 'character2',
-          value: char.value,
-        },
-      },
-      update: {},
-      create: {
-        type: 'character2',
-        value: char.value,
-        valueEn: char.valueEn,
-        order: char.order,
-        isActive: true,
-      },
-    });
-  }
+  // Create Companies
+  console.log('🏢 Creating companies...');
 
-  // Character3: Critical/Standard/Low Priority
-  const char3Values = [
-    { value: 'קריטי', valueEn: 'Critical', order: 1 },
-    { value: 'סטנדרטי', valueEn: 'Standard', order: 2 },
-    { value: 'עדיפות נמוכה', valueEn: 'Low Priority', order: 3 },
-  ];
+  const company1 = await prisma.company.create({
+    data: { name: 'חברת הבנייה המרכזית', isActive: true },
+  });
 
-  for (const char of char3Values) {
-    await prisma.character.upsert({
-      where: {
-        type_value: {
-          type: 'character3',
-          value: char.value,
-        },
-      },
-      update: {},
-      create: {
-        type: 'character3',
-        value: char.value,
-        valueEn: char.valueEn,
-        order: char.order,
-        isActive: true,
-      },
-    });
-  }
+  const company2 = await prisma.company.create({
+    data: { name: 'חברת הטכנולוגיה', isActive: true },
+  });
 
-  console.log('✓ Character lists created');
+  console.log('✅ Created 2 companies');
 
-  // 3. Create companies
-  console.log('Creating companies...');
+  // Create Suppliers
+  console.log('🏪 Creating suppliers...');
 
-  const companies = [
-    { name: 'חברה א', nameEn: 'Company A', taxId: '123456789' },
-    { name: 'חברה ב', nameEn: 'Company B', taxId: '987654321' },
-    { name: 'חברה ג', nameEn: 'Company C', taxId: '456789123' },
-  ];
-
-  for (const company of companies) {
-    const existingCompany = await prisma.company.findFirst({
-      where: { name: company.name },
-    });
-
-    if (!existingCompany) {
-      await prisma.company.create({
-        data: {
-          name: company.name,
-          nameEn: company.nameEn,
-          taxId: company.taxId,
-          isActive: true,
-        },
-      });
-    }
-  }
-
-  console.log('✓ Companies created');
-
-  // 4. Create sample suppliers
-  console.log('Creating sample suppliers...');
-
-  const suppliers = [
-    {
-      name: 'מיקרוסופט ישראל',
-      nameEn: 'Microsoft Israel',
-      email: 'orders@microsoft.co.il',
+  const supplier1 = await prisma.supplier.create({
+    data: {
+      name: 'ספקי משרד בע"מ',
+      email: 'office@supplier.com',
       phone: '03-1234567',
-      contactPerson: 'משה כהן',
-      taxId: '111222333',
-      address: 'רח\' הארבעה 7, תל אביב',
+      address: 'רחוב הרצל 1, תל אביב',
+      isActive: true,
     },
-    {
-      name: 'Dell ישראל',
-      nameEn: 'Dell Israel',
-      email: 'sales@dell.co.il',
-      phone: '03-7654321',
-      contactPerson: 'שרה לוי',
-      taxId: '444555666',
-      address: 'רח\' העצמאות 12, הרצליה',
+  });
+
+  const supplier2 = await prisma.supplier.create({
+    data: {
+      name: 'טכנו סחר בע"מ',
+      email: 'tech@supplier.com',
+      phone: '03-2345678',
+      isActive: true,
     },
-    {
-      name: 'AWS',
-      nameEn: 'Amazon Web Services',
-      email: 'billing@aws.amazon.com',
-      phone: '+1-206-266-1000',
-      contactPerson: 'Support Team',
-      taxId: 'INT123456',
-      address: 'Seattle, WA, USA',
+  });
+
+  console.log('✅ Created 2 suppliers');
+
+  // Create Items
+  console.log('📦 Creating catalogue items...');
+
+  const item1 = await prisma.item.create({
+    data: {
+      sku: 'OFF-001',
+      name: 'מחשב נייד Dell',
+      description: 'מחשב נייד עסקי',
+      suggestedPrice: 4500,
+      isActive: true,
     },
-  ];
-
-  for (const supplier of suppliers) {
-    const existingSupplier = await prisma.supplier.findFirst({
-      where: { email: supplier.email },
-    });
-
-    if (!existingSupplier) {
-      await prisma.supplier.create({
-        data: supplier,
-      });
-    }
-  }
-
-  console.log('✓ Sample suppliers created');
-
-  // 5. Create sample items
-  console.log('Creating sample items...');
-
-  const serviceChar = await prisma.character.findFirst({
-    where: { type: 'character1', value: 'שירות' },
   });
 
-  const softwareChar = await prisma.character.findFirst({
-    where: { type: 'character2', value: 'תוכנה' },
+  const item2 = await prisma.item.create({
+    data: {
+      sku: 'OFF-002',
+      name: 'מסך מחשב 27 אינץ',
+      suggestedPrice: 800,
+      isActive: true,
+    },
   });
 
-  const standardChar = await prisma.character.findFirst({
-    where: { type: 'character3', value: 'סטנדרטי' },
-  });
+  console.log('✅ Created 2 items');
 
-  const microsoftSupplier = await prisma.supplier.findFirst({
-    where: { nameEn: 'Microsoft Israel' },
-  });
+  // Create Sample PO
+  console.log('📝 Creating sample purchase order...');
 
-  if (serviceChar && softwareChar && standardChar && microsoftSupplier) {
-    await prisma.item.upsert({
-      where: { sku: '2025-SRV-00001' },
-      update: {},
-      create: {
-        sku: '2025-SRV-00001',
-        name: 'רישיון Office 365',
-        nameEn: 'Office 365 License',
-        description: 'רישיון חודשי ל-Office 365 Business Standard',
-        descriptionEn: 'Monthly license for Office 365 Business Standard',
-        character1Id: serviceChar.id,
-        character2Id: softwareChar.id,
-        character3Id: standardChar.id,
-        suggestedPrice: 50,
-        isOneTimePurchase: false,
-        validFrom: new Date('2025-01-01'),
-        validTo: new Date('2025-12-31'),
-        supplierId: microsoftSupplier.id,
-        isActive: true,
+  await prisma.purchaseOrder.create({
+    data: {
+      poNumber: 'PO-2025-0001',
+      date: new Date(),
+      status: 'DRAFT',
+      supplierId: supplier1.id,
+      companyId: company1.id,
+      createdById: user1.id,
+      totalAmount: 9800,
+      lineItems: {
+        create: [
+          {
+            itemSku: item1.sku!,
+            itemName: item1.name,
+            itemDescription: item1.description || '',
+            unitPrice: item1.suggestedPrice,
+            quantity: 2,
+            lineTotal: 9000,
+            lineNumber: 1,
+          },
+          {
+            itemSku: item2.sku!,
+            itemName: item2.name,
+            itemDescription: '',
+            unitPrice: item2.suggestedPrice,
+            quantity: 1,
+            lineTotal: 800,
+            lineNumber: 2,
+          },
+        ],
       },
-    });
-  }
-
-  console.log('✓ Sample items created');
-
-  // 6. Create system config defaults
-  console.log('Creating system configuration...');
-
-  const configs = [
-    {
-      key: 'alert_supplier_limit',
-      value: '100000',
-      description: 'Supplier spending alert threshold (NIS)',
     },
-    {
-      key: 'default_language',
-      value: 'he',
-      description: 'Default system language (he/en)',
-    },
-    {
-      key: 'po_number_format',
-      value: 'PO-{DATE}-{SEQ}',
-      description: 'Purchase order number format',
-    },
-    {
-      key: 'sku_format',
-      value: '{YEAR}-{CAT}-{SEQ}',
-      description: 'Item SKU format',
-    },
-  ];
+  });
 
-  for (const config of configs) {
-    await prisma.systemConfig.upsert({
-      where: { key: config.key },
-      update: {},
-      create: config,
-    });
-  }
+  console.log('✅ Created 1 sample PO');
 
-  console.log('✓ System configuration created');
-
-  console.log('\n✅ Database seed completed successfully!');
-  console.log('\n📝 Default credentials:');
-  console.log('   Email: admin@company.com');
-  console.log('   Password: Admin123!');
-  console.log('\n⚠️  Please change the admin password after first login!\n');
+  console.log('\n✨ Database seeding completed!\n');
+  console.log('🔑 Login: superadmin@test.com / password123');
+  console.log('🚀 Start testing at http://localhost:3002');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding database:', e);
+    console.error('❌ Error:', e);
     process.exit(1);
   })
   .finally(async () => {
