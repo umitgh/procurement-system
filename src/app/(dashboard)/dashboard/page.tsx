@@ -1,81 +1,292 @@
 // app/(dashboard)/dashboard/page.tsx
-// Dashboard home page
+// Main dashboard with statistics and widgets
 
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingCart, Package, Building2, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  ShoppingCart,
+  CheckSquare,
+  TrendingUp,
+  AlertCircle,
+  Eye,
+} from 'lucide-react';
+
+type DashboardStats = {
+  totalPOs: number;
+  draftPOs: number;
+  pendingApprovalPOs: number;
+  approvedPOs: number;
+  rejectedPOs: number;
+  pendingApprovalsForMe: number;
+  totalSpending: number;
+  monthlySpending: number;
+};
+
+type RecentPO = {
+  id: string;
+  poNumber: string;
+  date: string;
+  status: string;
+  totalAmount: number;
+  supplier: { name: string };
+  company: { name: string };
+};
+
+type TopSupplier = {
+  supplierId: string;
+  supplierName: string;
+  totalSpent: number;
+  poCount: number;
+};
+
+const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  DRAFT: 'secondary',
+  PENDING_APPROVAL: 'default',
+  APPROVED: 'default',
+  REJECTED: 'destructive',
+  CANCELLED: 'outline',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'טיוטה',
+  PENDING_APPROVAL: 'ממתין לאישור',
+  APPROVED: 'מאושר',
+  REJECTED: 'נדחה',
+  CANCELLED: 'בוטל',
+};
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentPOs, setRecentPOs] = useState<RecentPO[]>([]);
+  const [topSuppliers, setTopSuppliers] = useState<TopSupplier[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [statsRes, posRes, suppliersRes] = await Promise.all([
+        fetch('/api/dashboard/stats'),
+        fetch('/api/purchase-orders?limit=5'),
+        fetch('/api/dashboard/top-suppliers'),
+      ]);
+
+      const statsData = await statsRes.json();
+      const posData = await posRes.json();
+      const suppliersData = await suppliersRes.json();
+
+      setStats(statsData.stats || null);
+      setRecentPOs(posData.purchaseOrders?.slice(0, 5) || []);
+      setTopSuppliers(suppliersData.topSuppliers || []);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-6">טוען...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">לוח בקרה</h1>
-        <p className="text-gray-600">ברוכים הבאים למערכת הרכש</p>
+        <p className="text-gray-600">סקירה כללית של מערכת הרכש</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">הזמנות פעילות</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-gray-600" />
+            <CardTitle className="text-sm font-medium">סה&quot;כ הזמנות</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-gray-600">אין הזמנות פעילות</p>
+            <div className="text-2xl font-bold">{stats?.totalPOs || 0}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              <span className="text-yellow-600">{stats?.draftPOs || 0} טיוטות</span>
+              {' · '}
+              <span className="text-blue-600">{stats?.pendingApprovalPOs || 0} ממתינות</span>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">פריטים בקטלוג</CardTitle>
-            <Package className="h-4 w-4 text-gray-600" />
+            <CardTitle className="text-sm font-medium">אישורים ממתינים</CardTitle>
+            <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1</div>
-            <p className="text-xs text-gray-600">פריט אחד זמין</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ספקים</CardTitle>
-            <Building2 className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-gray-600">ספקים פעילים</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">הזמנות מאושרות</CardTitle>
-            <CheckCircle className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-gray-600">החודש</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>התחלה מהירה</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              מערכת הרכש מוכנה לשימוש! להלן הצעדים הבאים:
+            <div className="text-2xl font-bold">{stats?.pendingApprovalsForMe || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats?.pendingApprovalsForMe ? (
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => router.push('/approvals')}
+                  className="p-0 h-auto text-blue-600"
+                >
+                  עבור לאישורים
+                </Button>
+              ) : (
+                'אין אישורים ממתינים'
+              )}
             </p>
-            <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
-              <li>צור הזמנת רכש חדשה דרך תפריט &ldquo;הזמנות רכש&rdquo;</li>
-              <li>נהל פריטים בקטלוג דרך תפריט &ldquo;קטלוג פריטים&rdquo;</li>
-              <li>הוסף ספקים חדשים דרך תפריט &ldquo;ספקים&rdquo;</li>
-              <li>צפה בדוחות ואנליטיקה דרך תפריט &ldquo;דוחות&rdquo;</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">הוצאות חודשיות</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(stats?.monthlySpending || 0).toLocaleString()} ₪
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              החודש הנוכחי
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">סה&quot;כ הוצאות</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(stats?.totalSpending || 0).toLocaleString()} ₪
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              כל הזמנות מאושרות
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Purchase Orders */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>הזמנות אחרונות</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/purchase-orders')}
+              >
+                צפה בכל ההזמנות
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {recentPOs.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>אין הזמנות עדיין</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>מספר הזמנה</TableHead>
+                    <TableHead>ספק</TableHead>
+                    <TableHead>סכום</TableHead>
+                    <TableHead>סטטוס</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentPOs.map((po) => (
+                    <TableRow key={po.id}>
+                      <TableCell className="font-medium">{po.poNumber}</TableCell>
+                      <TableCell>{po.supplier.name}</TableCell>
+                      <TableCell>{po.totalAmount.toLocaleString()} ₪</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_COLORS[po.status] || 'default'}>
+                          {STATUS_LABELS[po.status] || po.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/purchase-orders/${po.id}`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Suppliers */}
+        <Card>
+          <CardHeader>
+            <CardTitle>ספקים מובילים</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topSuppliers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>אין נתונים להצגה</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topSuppliers.map((supplier, index) => (
+                  <div
+                    key={supplier.supplierId}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium">{supplier.supplierName}</p>
+                        <p className="text-sm text-gray-500">
+                          {supplier.poCount} {supplier.poCount === 1 ? 'הזמנה' : 'הזמנות'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold">{supplier.totalSpent.toLocaleString()} ₪</p>
+                      {supplier.totalSpent > 100000 && (
+                        <div className="flex items-center gap-1 text-xs text-orange-600">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>מעל 100K</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
