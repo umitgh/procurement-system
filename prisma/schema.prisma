@@ -196,6 +196,7 @@ model Company {
   name            String
   nameEn          String?
   taxId           String?  // ח.פ
+  logo            String?  // Logo file path or base64 data
   isActive        Boolean  @default(true)
 
   createdAt       DateTime @default(now())

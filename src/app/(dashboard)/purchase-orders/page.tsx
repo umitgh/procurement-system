@@ -22,7 +22,7 @@ import {
   EmptyDescription,
   EmptyTitle,
 } from '@/components/ui/empty';
-import { Plus, Eye, FileText } from 'lucide-react';
+import { Plus, Eye, FileText, Edit2 } from 'lucide-react';
 
 type PurchaseOrder = {
   id: string;
@@ -144,14 +144,26 @@ export default function PurchaseOrdersPage() {
                     </TableCell>
                     <TableCell>{po.createdBy.name}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/purchase-orders/${po.id}`)}
-                      >
-                        <Eye className="h-4 w-4 ml-1" />
-                        צפה
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/purchase-orders/${po.id}`)}
+                        >
+                          <Eye className="h-4 w-4 ml-1" />
+                          צפה
+                        </Button>
+                        {po.status === 'DRAFT' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/purchase-orders/${po.id}`)}
+                          >
+                            <Edit2 className="h-4 w-4 ml-1" />
+                            ערוך
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

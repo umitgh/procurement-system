@@ -25,13 +25,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, X } from 'lucide-react';
 
 type Company = {
   id: string;
   name: string;
   nameEn?: string | null;
   taxId?: string | null;
+  logo?: string | null;
   isActive: boolean;
 };
 
@@ -44,6 +45,7 @@ export default function CompaniesPage() {
     name: '',
     nameEn: '',
     taxId: '',
+    logo: '',
   });
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function CompaniesPage() {
       name: company.name,
       nameEn: company.nameEn || '',
       taxId: company.taxId || '',
+      logo: company.logo || '',
     });
     setDialogOpen(true);
   };
@@ -112,7 +115,37 @@ export default function CompaniesPage() {
       name: '',
       nameEn: '',
       taxId: '',
+      logo: '',
     });
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('נא להעלות קובץ תמונה בלבד');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('גודל הקובץ חייב להיות פחות מ-2MB');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setFormData({ ...formData, logo: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    setFormData({ ...formData, logo: '' });
   };
 
   return (
@@ -211,6 +244,49 @@ export default function CompaniesPage() {
                 value={formData.taxId}
                 onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
               />
+            </div>
+            <div>
+              <Label htmlFor="logo">לוגו החברה</Label>
+              <div className="mt-2 space-y-2">
+                {formData.logo ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={formData.logo}
+                      alt="Company Logo"
+                      className="h-24 w-auto border rounded"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2"
+                      onClick={removeLogo}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="logo"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('logo')?.click()}
+                    >
+                      <Upload className="h-4 w-4 ml-2" />
+                      העלה לוגו
+                    </Button>
+                    <span className="text-sm text-gray-500">
+                      PNG, JPG עד 2MB
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

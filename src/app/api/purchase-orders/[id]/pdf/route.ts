@@ -38,6 +38,7 @@ export async function GET(
         company: {
           select: {
             name: true,
+            logo: true,
           },
         },
         createdBy: {

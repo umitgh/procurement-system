@@ -26,6 +26,7 @@ export async function GET(
         name: true,
         nameEn: true,
         taxId: true,
+        logo: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -59,13 +60,14 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, nameEn, taxId, isActive } = body;
+    const { name, nameEn, taxId, logo, isActive } = body;
 
     const updateData: Record<string, unknown> = {};
 
     if (name !== undefined) updateData.name = name;
     if (nameEn !== undefined) updateData.nameEn = nameEn;
     if (taxId !== undefined) updateData.taxId = taxId;
+    if (logo !== undefined) updateData.logo = logo;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const { id } = await params;
@@ -77,6 +79,7 @@ export async function PUT(
         name: true,
         nameEn: true,
         taxId: true,
+        logo: true,
         isActive: true,
       },
     });

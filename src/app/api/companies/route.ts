@@ -21,6 +21,7 @@ export async function GET() {
         name: true,
         nameEn: true,
         taxId: true,
+        logo: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, nameEn, taxId } = body;
+    const { name, nameEn, taxId, logo } = body;
 
     // Validate required fields
     if (!name) {
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
         name,
         nameEn: nameEn || null,
         taxId: taxId || null,
+        logo: logo || null,
         isActive: true,
       },
       select: {
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
         name: true,
         nameEn: true,
         taxId: true,
+        logo: true,
         isActive: true,
       },
     });

@@ -9,6 +9,7 @@ import {
   View,
   StyleSheet,
   Font,
+  Image,
 } from '@react-pdf/renderer';
 
 // Register Hebrew font - use a CDN that supports CORS
@@ -33,9 +34,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Heebo',
   },
   header: {
+    flexDirection: 'row',
     marginBottom: 20,
     borderBottom: '2 solid #000',
     paddingBottom: 10,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    width: 100,
+    alignItems: 'flex-end',
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    objectFit: 'contain',
   },
   title: {
     fontSize: 24,
@@ -131,6 +145,7 @@ type PurchaseOrderData = {
   };
   company: {
     name: string;
+    logo?: string | null;
   };
   createdBy: {
     name: string;
@@ -148,11 +163,18 @@ export const PurchaseOrderPDF = ({ po }: { po: PurchaseOrderData }) => (
     <Page size="A4" style={styles.page}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Purchase Order / הזמנת רכש</Text>
-        <Text style={styles.subtitle}>PO Number: {po.poNumber}</Text>
-        <Text style={styles.subtitle}>
-          Date: {new Date(po.date).toLocaleDateString('en-US')}
-        </Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Purchase Order / הזמנת רכש</Text>
+          <Text style={styles.subtitle}>PO Number: {po.poNumber}</Text>
+          <Text style={styles.subtitle}>
+            Date: {new Date(po.date).toLocaleDateString('en-US')}
+          </Text>
+        </View>
+        {po.company.logo && (
+          <View style={styles.headerRight}>
+            <Image src={po.company.logo} style={styles.logo} />
+          </View>
+        )}
       </View>
 
       {/* Supplier and Company Info */}
