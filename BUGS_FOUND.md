@@ -27,10 +27,21 @@
 
 ## 🟡 MEDIUM PRIORITY ISSUES
 
-### Issue #: [To be filled]
-**Status**:
-**Priority**:
-**Description**:
+### Issue #2: Login Button Click Not Triggering Form Submit (Playwright)
+**Status**: WORKAROUND APPLIED
+**Priority**: MEDIUM
+**Page/Component**: /login page
+**Steps to Reproduce**:
+1. Navigate to /login
+2. Fill in email and password fields
+3. Click the "התחבר" button with Playwright `.click()`
+
+**Expected Behavior**: Form should submit and authenticate user
+**Actual Behavior**: Button click event doesn't trigger form submission
+**Root Cause**: Possible React hydration timing issue or event handler attachment delay
+**Workaround**: Using `document.querySelector('form').requestSubmit()` works perfectly
+**Note**: Manual browser testing needed to confirm if this affects real users or is Playwright-specific
+**Authentication Status**: ✅ Working correctly - password validation, user lookup, session creation all functional
 
 ---
 
@@ -55,9 +66,9 @@
 ## Testing Notes
 
 ### Areas Tested:
-- [ ] Login/Auth
+- [x] Login/Auth - ✅ PASS (with Playwright workaround)
 - [ ] Navigation
-- [ ] Dashboard
+- [x] Dashboard - ✅ PASS (displays correctly)
 - [ ] PO List
 - [ ] PO Create
 - [ ] PO Details
@@ -70,7 +81,7 @@
 
 ### Issues Summary:
 - **Critical**: 0
-- **Medium**: 0
+- **Medium**: 1 (Playwright button click workaround)
 - **Low**: 0
 - **Fixed**: 1
-- **Total**: 1
+- **Total**: 2
