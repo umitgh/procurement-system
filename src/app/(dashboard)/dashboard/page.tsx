@@ -16,12 +16,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import {
   ShoppingCart,
   CheckSquare,
   TrendingUp,
   AlertCircle,
   Eye,
+  FileText,
 } from 'lucide-react';
 
 type DashboardStats = {
@@ -102,7 +109,48 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return <div className="p-6">טוען...</div>;
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-9 w-48 mb-2" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+
+        {/* Skeleton for stats cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4 rounded" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Skeleton for tables */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, j) => (
+                    <Skeleton key={j} className="h-12 w-full" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -201,9 +249,16 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {recentPOs.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>אין הזמנות עדיין</p>
-              </div>
+              <Empty>
+                <FileText className="h-12 w-12" />
+                <EmptyTitle>אין הזמנות עדיין</EmptyTitle>
+                <EmptyDescription>
+                  צור הזמנת רכש ראשונה כדי להתחיל
+                </EmptyDescription>
+                <Button onClick={() => router.push('/purchase-orders/new')}>
+                  צור הזמנה חדשה
+                </Button>
+              </Empty>
             ) : (
               <Table>
                 <TableHeader>
@@ -250,9 +305,13 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {topSuppliers.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>אין נתונים להצגה</p>
-              </div>
+              <Empty>
+                <TrendingUp className="h-12 w-12" />
+                <EmptyTitle>אין נתונים להצגה</EmptyTitle>
+                <EmptyDescription>
+                  נתוני ספקים יופיעו כאן לאחר יצירת הזמנות
+                </EmptyDescription>
+              </Empty>
             ) : (
               <div className="space-y-4">
                 {topSuppliers.map((supplier, index) => (
