@@ -16,7 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Eye } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+} from '@/components/ui/empty';
+import { Plus, Eye, FileText } from 'lucide-react';
 
 type PurchaseOrder = {
   id: string;
@@ -90,15 +96,23 @@ export default function PurchaseOrdersPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p>טוען...</p>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
           ) : purchaseOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">אין הזמנות רכש עדיין</p>
+            <Empty>
+              <FileText className="h-16 w-16" />
+              <EmptyTitle>אין הזמנות רכש עדיין</EmptyTitle>
+              <EmptyDescription>
+                התחל על ידי יצירת הזמנת הרכש הראשונה שלך
+              </EmptyDescription>
               <Button onClick={() => router.push('/purchase-orders/new')}>
                 <Plus className="h-4 w-4 ml-2" />
                 צור הזמנה ראשונה
               </Button>
-            </div>
+            </Empty>
           ) : (
             <Table>
               <TableHeader>
