@@ -145,9 +145,12 @@ export async function PUT(
       throw new ApiError(404, 'Purchase Order not found');
     }
 
-    // Check permissions: only creator can edit DRAFT POs
-    if (existingPO.createdById !== session.user.id) {
-      throw new ApiError(403, 'Only the creator can edit this Purchase Order');
+    // Check permissions: only creator or admin can edit/submit DRAFT POs
+    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPER_ADMIN';
+    const isCreator = existingPO.createdById === session.user.id;
+
+    if (!isCreator && !isAdmin) {
+      throw new ApiError(403, 'Only the creator or an admin can edit this Purchase Order');
     }
 
     if (existingPO.status !== 'DRAFT' && !status) {
@@ -197,7 +200,8 @@ export async function PUT(
           character3?: string;
           unitPrice: number;
           quantity: number;
-        }) => ({
+        }, index: number) => ({
+          lineNumber: index + 1,
           itemId: item.itemId || null,
           itemName: item.itemName,
           itemDescription: item.itemDescription || null,

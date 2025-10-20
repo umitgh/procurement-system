@@ -11,16 +11,16 @@ import {
   Font,
 } from '@react-pdf/renderer';
 
-// Register Hebrew font from Google Fonts CDN
+// Register Hebrew font - use a CDN that supports CORS
 Font.register({
   family: 'Heebo',
   fonts: [
     {
-      src: 'https://fonts.gstatic.com/s/heebo/v21/NGS6v5_NC0k9P9H0TbFhsqM.ttf',
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/heebo@4.5.11/files/heebo-hebrew-400-normal.woff',
       fontWeight: 400,
     },
     {
-      src: 'https://fonts.gstatic.com/s/heebo/v21/NGS6v5_NC0k9P9H2TbFhsqM.ttf',
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/heebo@4.5.11/files/heebo-hebrew-700-normal.woff',
       fontWeight: 700,
     },
   ],

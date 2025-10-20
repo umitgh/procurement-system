@@ -76,7 +76,7 @@ export async function PUT(
     if (name) updateData.name = name;
     if (role) updateData.role = role;
     if (approvalLimit !== undefined) updateData.approvalLimit = approvalLimit;
-    if (managerId !== undefined) updateData.managerId = managerId;
+    if (managerId !== undefined) updateData.managerId = managerId || null;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10);

@@ -120,14 +120,14 @@ export async function PUT(
     if (nameEn !== undefined) updateData.nameEn = nameEn;
     if (description !== undefined) updateData.description = description;
     if (descriptionEn !== undefined) updateData.descriptionEn = descriptionEn;
-    if (character1Id !== undefined) updateData.character1Id = character1Id;
-    if (character2Id !== undefined) updateData.character2Id = character2Id;
-    if (character3Id !== undefined) updateData.character3Id = character3Id;
+    if (character1Id !== undefined) updateData.character1Id = character1Id || null;
+    if (character2Id !== undefined) updateData.character2Id = character2Id || null;
+    if (character3Id !== undefined) updateData.character3Id = character3Id || null;
     if (suggestedPrice !== undefined) updateData.suggestedPrice = suggestedPrice;
     if (isOneTimePurchase !== undefined) updateData.isOneTimePurchase = isOneTimePurchase;
     if (validFrom !== undefined) updateData.validFrom = validFrom ? new Date(validFrom) : null;
     if (validTo !== undefined) updateData.validTo = validTo ? new Date(validTo) : null;
-    if (supplierId !== undefined) updateData.supplierId = supplierId;
+    if (supplierId !== undefined) updateData.supplierId = supplierId || null;
     if (remarks !== undefined) updateData.remarks = remarks;
     if (isActive !== undefined) updateData.isActive = isActive;
 
