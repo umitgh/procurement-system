@@ -268,12 +268,15 @@ export default function UsersPage() {
             </div>
             <div>
               <Label htmlFor="manager">מנהל</Label>
-              <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
+              <Select
+                value={formData.managerId || 'NONE'}
+                onValueChange={(value) => setFormData({ ...formData, managerId: value === 'NONE' ? '' : value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="בחר מנהל" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">ללא מנהל</SelectItem>
+                  <SelectItem value="NONE">ללא מנהל</SelectItem>
                   {users
                     .filter((u) => u.id !== editingUser?.id)
                     .map((u) => (
