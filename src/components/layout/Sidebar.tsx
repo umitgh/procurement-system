@@ -5,6 +5,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -80,11 +81,20 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  // Filter navigation items based on user role
+  const filteredNavItems = navItems.filter((item) => {
+    if (!item.adminOnly) return true; // Show non-admin items to all users
+
+    // Only show admin items to ADMIN and SUPER_ADMIN roles
+    return session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN';
+  });
 
   return (
     <aside className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-64 border-l bg-gray-50">
       <nav className="flex flex-col gap-1 p-4">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
 

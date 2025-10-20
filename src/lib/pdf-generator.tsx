@@ -11,17 +11,26 @@ import {
   Font,
 } from '@react-pdf/renderer';
 
-// Register Hebrew font (you'll need to add a Hebrew font file)
-// Font.register({
-//   family: 'Heebo',
-//   src: '/fonts/Heebo-Regular.ttf',
-// });
+// Register Hebrew font from Google Fonts CDN
+Font.register({
+  family: 'Heebo',
+  fonts: [
+    {
+      src: 'https://fonts.gstatic.com/s/heebo/v21/NGS6v5_NC0k9P9H0TbFhsqM.ttf',
+      fontWeight: 400,
+    },
+    {
+      src: 'https://fonts.gstatic.com/s/heebo/v21/NGS6v5_NC0k9P9H2TbFhsqM.ttf',
+      fontWeight: 700,
+    },
+  ],
+});
 
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 10,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Heebo',
   },
   header: {
     marginBottom: 20,
