@@ -316,14 +316,14 @@ export default function ItemsPage() {
               <div>
                 <Label htmlFor="char1">מאפיין 1</Label>
                 <Select
-                  value={formData.character1Id}
-                  onValueChange={(value) => setFormData({ ...formData, character1Id: value })}
+                  value={formData.character1Id || 'NONE'}
+                  onValueChange={(value) => setFormData({ ...formData, character1Id: value === 'NONE' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="בחר מאפיין" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">ללא מאפיין</SelectItem>
+                    <SelectItem value="NONE">ללא מאפיין</SelectItem>
                     {char1Options.map((char) => (
                       <SelectItem key={char.id} value={char.id}>
                         {char.value}
@@ -335,14 +335,14 @@ export default function ItemsPage() {
               <div>
                 <Label htmlFor="char2">מאפיין 2</Label>
                 <Select
-                  value={formData.character2Id}
-                  onValueChange={(value) => setFormData({ ...formData, character2Id: value })}
+                  value={formData.character2Id || 'NONE'}
+                  onValueChange={(value) => setFormData({ ...formData, character2Id: value === 'NONE' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="בחר מאפיין" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">ללא מאפיין</SelectItem>
+                    <SelectItem value="NONE">ללא מאפיין</SelectItem>
                     {char2Options.map((char) => (
                       <SelectItem key={char.id} value={char.id}>
                         {char.value}
@@ -354,14 +354,14 @@ export default function ItemsPage() {
               <div>
                 <Label htmlFor="char3">מאפיין 3</Label>
                 <Select
-                  value={formData.character3Id}
-                  onValueChange={(value) => setFormData({ ...formData, character3Id: value })}
+                  value={formData.character3Id || 'NONE'}
+                  onValueChange={(value) => setFormData({ ...formData, character3Id: value === 'NONE' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="בחר מאפיין" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">ללא מאפיין</SelectItem>
+                    <SelectItem value="NONE">ללא מאפיין</SelectItem>
                     {char3Options.map((char) => (
                       <SelectItem key={char.id} value={char.id}>
                         {char.value}
@@ -385,14 +385,14 @@ export default function ItemsPage() {
               <div>
                 <Label htmlFor="supplier">ספק</Label>
                 <Select
-                  value={formData.supplierId}
-                  onValueChange={(value) => setFormData({ ...formData, supplierId: value })}
+                  value={formData.supplierId || 'NONE'}
+                  onValueChange={(value) => setFormData({ ...formData, supplierId: value === 'NONE' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="בחר ספק" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">ללא ספק</SelectItem>
+                    <SelectItem value="NONE">ללא ספק</SelectItem>
                     {suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.name}
