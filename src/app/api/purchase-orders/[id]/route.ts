@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api-error';
+import { initializeApprovals } from '@/lib/approval-service';
 
 // GET /api/purchase-orders/[id] - Get purchase order by ID
 export async function GET(
@@ -228,6 +229,15 @@ export async function PUT(
         submittedAt: true,
       },
     });
+
+    // If status changed to PENDING_APPROVAL, initialize approval workflow
+    if (status === 'PENDING_APPROVAL' && existingPO.status === 'DRAFT') {
+      await initializeApprovals(
+        purchaseOrder.id,
+        purchaseOrder.createdById,
+        purchaseOrder.totalAmount
+      );
+    }
 
     return NextResponse.json({ purchaseOrder });
   } catch (error) {

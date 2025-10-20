@@ -16,6 +16,7 @@ import {
   Settings,
   Building,
   Tags,
+  CheckSquare,
 } from 'lucide-react';
 
 const navItems = [
@@ -28,6 +29,11 @@ const navItems = [
     title: 'הזמנות רכש',
     href: '/purchase-orders',
     icon: ShoppingCart,
+  },
+  {
+    title: 'אישורים',
+    href: '/approvals',
+    icon: CheckSquare,
   },
   {
     title: 'קטלוג פריטים',
