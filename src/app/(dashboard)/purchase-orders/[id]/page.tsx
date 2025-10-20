@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Save, Send, Edit2, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Trash2, Save, Send, Edit2, ArrowRight, CheckCircle, XCircle, Download } from 'lucide-react';
 
 type Supplier = {
   id: string;
@@ -412,6 +412,13 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push('/purchase-orders')}>
             חזור לרשימה
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/api/purchase-orders/${po.id}/pdf`, '_blank')}
+          >
+            <Download className="h-4 w-4 ml-2" />
+            הורד PDF
           </Button>
           {canEdit && (
             <>
