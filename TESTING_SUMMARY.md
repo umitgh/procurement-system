@@ -84,6 +84,38 @@ All test accounts use password: `password123`
 
 ### ✅ TEST 3: Purchase Orders List
 **Status**: PASS
+
+---
+
+### ⏸️ TEST 4: Create Purchase Order (Partial)
+**Status**: IN PROGRESS
+**URL**: http://localhost:3001/purchase-orders/new
+
+**Test Steps Completed**:
+1. ✅ Navigate to create PO page
+2. ✅ Verify page loads with form elements
+3. ✅ Verify required fields marked (Supplier*, Company*)
+4. ✅ Verify action buttons present (ביטול, שמור כטיוטה, שלח לאישור)
+5. ✅ Verify item section with "מקטלוג" and "פריט מותאם" buttons
+6. ✅ Verify empty state message
+7. ✅ Test form validation - doesn't submit without required fields
+8. ⏸️ Dropdown interactions need further testing
+
+**Results**:
+- Page renders correctly with professional UI
+- Form layout proper with Hebrew RTL
+- Validation prevents saving without required fields
+- Empty state helpful with instructions
+- All buttons and controls visible
+
+**Screenshot**: `04-create-po-empty.png`
+
+**Note**: Combobox/dropdown interactions with Playwright need additional work. Recommend manual testing for full CRUD workflow.
+
+---
+
+### ✅ TEST 3: Purchase Orders List
+**Status**: PASS
 **URL**: http://localhost:3001/purchase-orders
 
 **Test Steps Completed**:
@@ -153,11 +185,11 @@ All test accounts use password: `password123`
 
 ## Test Coverage Summary
 
-### Pages Tested: 3/11
+### Pages Tested: 4/11 (3 complete, 1 partial)
 - ✅ Login Page
 - ✅ Dashboard
 - ✅ Purchase Orders List
-- ⏸️ Purchase Orders Create
+- ⏸️ Purchase Orders Create (partial - form validation tested)
 - ⏸️ Purchase Order Details
 - ⏸️ Approvals
 - ⏸️ Admin - Users
