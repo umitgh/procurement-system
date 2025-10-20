@@ -1,13 +1,12 @@
-// app/api/users/[id]/route.ts
-// Individual user API endpoints
+// app/api/characters/[id]/route.ts
+// Individual character API endpoints
 
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api-error';
-import bcrypt from 'bcryptjs';
 
-// GET /api/users/[id] - Get user by ID
+// GET /api/characters/[id] - Get character by ID
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -20,39 +19,31 @@ export async function GET(
     }
 
     const { id } = await params;
-    const user = await prisma.user.findUnique({
+    const character = await prisma.character.findUnique({
       where: { id },
       select: {
         id: true,
-        email: true,
-        name: true,
-        role: true,
-        approvalLimit: true,
+        type: true,
+        value: true,
+        valueEn: true,
+        order: true,
         isActive: true,
-        managerId: true,
-        manager: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        language: true,
         createdAt: true,
-        lastLoginAt: true,
+        updatedAt: true,
       },
     });
 
-    if (!user) {
-      throw new ApiError(404, 'User not found');
+    if (!character) {
+      throw new ApiError(404, 'Character not found');
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ character });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-// PUT /api/users/[id] - Update user
+// PUT /api/characters/[id] - Update character
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -69,43 +60,38 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, role, approvalLimit, managerId, isActive, password } = body;
+    const { id } = await params;
+    const { value, valueEn, order, isActive } = body;
 
     const updateData: Record<string, unknown> = {};
 
-    if (name) updateData.name = name;
-    if (role) updateData.role = role;
-    if (approvalLimit !== undefined) updateData.approvalLimit = approvalLimit;
-    if (managerId !== undefined) updateData.managerId = managerId;
+    if (value !== undefined) updateData.value = value;
+    if (valueEn !== undefined) updateData.valueEn = valueEn;
+    if (order !== undefined) updateData.order = order;
     if (isActive !== undefined) updateData.isActive = isActive;
-    if (password) {
-      updateData.passwordHash = await bcrypt.hash(password, 10);
-    }
 
-    const { id } = await params;
-    const user = await prisma.user.update({
+    const character = await prisma.character.update({
       where: { id },
       data: updateData,
       select: {
         id: true,
-        email: true,
-        name: true,
-        role: true,
-        approvalLimit: true,
-        managerId: true,
+        type: true,
+        value: true,
+        valueEn: true,
+        order: true,
         isActive: true,
       },
     });
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ character });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-// DELETE /api/users/[id] - Soft delete user
+// DELETE /api/characters/[id] - Soft delete character
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -121,7 +107,7 @@ export async function DELETE(
 
     const { id } = await params;
     // Soft delete by setting isActive to false
-    await prisma.user.update({
+    await prisma.character.update({
       where: { id },
       data: { isActive: false },
     });

@@ -14,6 +14,8 @@ import {
   Building2,
   BarChart3,
   Settings,
+  Building,
+  Tags,
 } from 'lucide-react';
 
 const navItems = [
@@ -29,13 +31,27 @@ const navItems = [
   },
   {
     title: 'קטלוג פריטים',
-    href: '/items',
+    href: '/admin/items',
     icon: Package,
+    adminOnly: true,
   },
   {
     title: 'ספקים',
-    href: '/suppliers',
+    href: '/admin/suppliers',
     icon: Building2,
+    adminOnly: true,
+  },
+  {
+    title: 'חברות',
+    href: '/admin/companies',
+    icon: Building,
+    adminOnly: true,
+  },
+  {
+    title: 'מאפיינים',
+    href: '/admin/characters',
+    icon: Tags,
+    adminOnly: true,
   },
   {
     title: 'דוחות',

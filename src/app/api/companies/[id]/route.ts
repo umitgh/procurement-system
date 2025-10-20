@@ -1,13 +1,12 @@
-// app/api/users/[id]/route.ts
-// Individual user API endpoints
+// app/api/companies/[id]/route.ts
+// Individual company API endpoints
 
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api-error';
-import bcrypt from 'bcryptjs';
 
-// GET /api/users/[id] - Get user by ID
+// GET /api/companies/[id] - Get company by ID
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -20,39 +19,30 @@ export async function GET(
     }
 
     const { id } = await params;
-    const user = await prisma.user.findUnique({
+    const company = await prisma.company.findUnique({
       where: { id },
       select: {
         id: true,
-        email: true,
         name: true,
-        role: true,
-        approvalLimit: true,
+        nameEn: true,
+        taxId: true,
         isActive: true,
-        managerId: true,
-        manager: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        language: true,
         createdAt: true,
-        lastLoginAt: true,
+        updatedAt: true,
       },
     });
 
-    if (!user) {
-      throw new ApiError(404, 'User not found');
+    if (!company) {
+      throw new ApiError(404, 'Company not found');
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ company });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-// PUT /api/users/[id] - Update user
+// PUT /api/companies/[id] - Update company
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -69,43 +59,37 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, role, approvalLimit, managerId, isActive, password } = body;
+    const { name, nameEn, taxId, isActive } = body;
 
     const updateData: Record<string, unknown> = {};
 
-    if (name) updateData.name = name;
-    if (role) updateData.role = role;
-    if (approvalLimit !== undefined) updateData.approvalLimit = approvalLimit;
-    if (managerId !== undefined) updateData.managerId = managerId;
+    if (name !== undefined) updateData.name = name;
+    if (nameEn !== undefined) updateData.nameEn = nameEn;
+    if (taxId !== undefined) updateData.taxId = taxId;
     if (isActive !== undefined) updateData.isActive = isActive;
-    if (password) {
-      updateData.passwordHash = await bcrypt.hash(password, 10);
-    }
 
     const { id } = await params;
-    const user = await prisma.user.update({
+    const company = await prisma.company.update({
       where: { id },
       data: updateData,
       select: {
         id: true,
-        email: true,
         name: true,
-        role: true,
-        approvalLimit: true,
-        managerId: true,
+        nameEn: true,
+        taxId: true,
         isActive: true,
       },
     });
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ company });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-// DELETE /api/users/[id] - Soft delete user
+// DELETE /api/companies/[id] - Soft delete company
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -121,7 +105,7 @@ export async function DELETE(
 
     const { id } = await params;
     // Soft delete by setting isActive to false
-    await prisma.user.update({
+    await prisma.company.update({
       where: { id },
       data: { isActive: false },
     });
