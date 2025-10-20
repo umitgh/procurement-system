@@ -145,7 +145,8 @@ export async function POST(request: Request) {
             character3?: string;
             unitPrice: number;
             quantity: number;
-          }) => ({
+          }, index: number) => ({
+            lineNumber: index + 1,
             itemId: item.itemId || null,
             itemName: item.itemName,
             itemDescription: item.itemDescription || null,
