@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl">
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <SessionProvider>
           {children}
         </SessionProvider>

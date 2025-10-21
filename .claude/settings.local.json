@@ -16,7 +16,15 @@
       "Bash(npm install -D @types/bcryptjs @types/nodemailer prisma)",
       "Bash(npx prisma init --datasource-provider sqlite)",
       "Bash(cat .env)",
-      "Bash(npx prisma generate)"
+      "Bash(npx prisma generate)",
+      "Bash(node --version:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd complete Windows Server deployment package for IIS + PM2\n\nCreated comprehensive deployment solution including:\n\nInfrastructure Setup:\n- ecosystem.config.js: PM2 cluster configuration (3 instances)\n- web.config: IIS reverse proxy configuration with health checks\n- .env.production: Production environment variables template\n\nAutomation Scripts (PowerShell):\n- install-pm2-service.ps1: Automated PM2 Windows Service installation\n- setup-iis.ps1: Automated IIS configuration and site creation\n- backup-database.ps1: Database backup with retention policy\n- monitor-services.ps1: Health monitoring with email alerts\n\nApplication Updates:\n- next.config.ts: Added standalone output for production deployment\n- src/app/api/health/route.ts: Health check endpoint for monitoring\n\nDocumentation (Hebrew):\n- deployment/DEPLOYMENT-GUIDE-HE.md: Complete step-by-step deployment guide\n- deployment/README.md: Quick reference and package overview\n- docs/MAINTENANCE.md: Daily/weekly maintenance procedures\n- docs/MONITORING.md: Monitoring setup and alerting configuration\n\nFeatures:\n- Auto-restart on crash (PM2)\n- Auto-start on server reboot (Windows Service)\n- Zero-downtime deployments (cluster mode)\n- Automated backups with 30-day retention\n- Email alerts on service failures\n- IIS reverse proxy with SSL-ready configuration\n- Health check monitoring every 10 minutes\n\nTarget Environment:\n- Windows Server 2019\n- Node.js 20.x LTS\n- IIS 10.0+ with ARR and URL Rewrite modules\n- SQLite database on D: drive\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npm run build:*)",
+      "Bash(gh:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

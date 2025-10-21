@@ -96,17 +96,19 @@ export async function determineApprovalChain(
  * @param poId - Purchase Order ID
  * @param createdById - ID of the user who created the PO
  * @param totalAmount - Total amount of the PO
+ * @param requiresCEOApproval - Flag indicating supplier exceeded 100K monthly budget
  * @returns Number of approval levels created
  */
 export async function initializeApprovals(
   poId: string,
   createdById: string,
-  totalAmount: number
+  totalAmount: number,
+  requiresCEOApproval = false
 ): Promise<number> {
   const approvalChain = await determineApprovalChain(createdById, totalAmount);
 
-  // If no approval chain, auto-approve
-  if (approvalChain.length === 0) {
+  // If supplier exceeded 100K budget, require approval even if normally auto-approved
+  if (approvalChain.length === 0 && !requiresCEOApproval) {
     await prisma.purchaseOrder.update({
       where: { id: poId },
       data: {
@@ -115,6 +117,30 @@ export async function initializeApprovals(
       },
     });
     return 0;
+  }
+
+  // If requires CEO approval but no chain exists, send to immediate manager
+  if (requiresCEOApproval && approvalChain.length === 0) {
+    const creator = await prisma.user.findUnique({
+      where: { id: createdById },
+      select: { managerId: true },
+    });
+
+    if (creator?.managerId) {
+      const manager = await prisma.user.findUnique({
+        where: { id: creator.managerId },
+        select: { id: true, name: true },
+      });
+
+      if (manager) {
+        approvalChain.push({
+          level: 1,
+          approverId: manager.id,
+          approverName: manager.name || '',
+          approvalLimit: 0,
+        });
+      }
+    }
   }
 
   // Create approval records

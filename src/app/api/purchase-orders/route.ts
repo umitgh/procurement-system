@@ -114,6 +114,37 @@ export async function POST(request: Request) {
       throw new ApiError(400, 'At least one line item is required');
     }
 
+    // Validate foreign keys exist
+    console.log('[PO CREATE] Validating IDs:', {
+      supplierId,
+      companyId,
+      userId: session.user.id,
+    });
+
+    const [supplier, company, user] = await Promise.all([
+      prisma.supplier.findUnique({ where: { id: supplierId } }),
+      prisma.company.findUnique({ where: { id: companyId } }),
+      prisma.user.findUnique({ where: { id: session.user.id } }),
+    ]);
+
+    console.log('[PO CREATE] Validation results:', {
+      supplierFound: !!supplier,
+      companyFound: !!company,
+      userFound: !!user,
+    });
+
+    if (!supplier) {
+      throw new ApiError(400, `Supplier not found: ${supplierId}`);
+    }
+
+    if (!company) {
+      throw new ApiError(400, `Company not found: ${companyId}`);
+    }
+
+    if (!user) {
+      throw new ApiError(400, `User not found: ${session.user.id}`);
+    }
+
     // Generate PO Number
     const poNumber = await generatePONumber();
 

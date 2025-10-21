@@ -234,12 +234,49 @@ export async function PUT(
       },
     });
 
-    // If status changed to PENDING_APPROVAL, initialize approval workflow
+    // If status changed to PENDING_APPROVAL, check supplier budget and initialize approval workflow
     if (status === 'PENDING_APPROVAL' && existingPO.status === 'DRAFT') {
+      // Check if supplier has exceeded 100K threshold this month
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const supplierMonthlySpending = await prisma.purchaseOrder.aggregate({
+        where: {
+          supplierId: purchaseOrder.supplierId,
+          status: 'APPROVED',
+          approvedAt: {
+            gte: firstDayOfMonth,
+            lte: lastDayOfMonth,
+          },
+        },
+        _sum: {
+          totalAmount: true,
+        },
+      });
+
+      const currentMonthSpending = supplierMonthlySpending._sum.totalAmount || 0;
+      const SUPPLIER_MONTHLY_LIMIT = 100000;
+      const exceedsLimit = currentMonthSpending >= SUPPLIER_MONTHLY_LIMIT;
+
+      // Store the reason for approval if limit is exceeded
+      if (exceedsLimit) {
+        // Update PO with special flag indicating CEO approval required
+        await prisma.purchaseOrder.update({
+          where: { id: purchaseOrder.id },
+          data: {
+            remarks: purchaseOrder.remarks
+              ? `${purchaseOrder.remarks}\n\n[אזהרת מערכת] ספק זה חרג מתקציב של ₪100,000 לחודש זה. נדרש אישור מנכ"ל.`
+              : '[אזהרת מערכת] ספק זה חרג מתקציב של ₪100,000 לחודש זה. נדרש אישור מנכ"ל.',
+          },
+        });
+      }
+
       await initializeApprovals(
         purchaseOrder.id,
         purchaseOrder.createdById,
-        purchaseOrder.totalAmount
+        purchaseOrder.totalAmount,
+        exceedsLimit // Pass flag to approval service
       );
     }
 
