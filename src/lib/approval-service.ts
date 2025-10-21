@@ -2,6 +2,13 @@
 // Approval workflow logic
 
 import { prisma } from './prisma';
+import {
+  sendApprovalNotification,
+  sendPOApprovedNotification,
+  sendPORejectedNotification,
+  sendPOToSupplier,
+} from './email-service';
+import { generatePOPDF } from './pdf-generator';
 
 export type ApprovalLevel = {
   level: number;
@@ -122,6 +129,43 @@ export async function initializeApprovals(
     data: approvals,
   });
 
+  // Send email notifications to first level approvers
+  // Get PO details for email
+  const po = await prisma.purchaseOrder.findUnique({
+    where: { id: poId },
+    include: {
+      createdBy: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (po && approvalChain.length > 0) {
+    // Notify level 1 approvers (they need to approve first)
+    const level1Approvers = approvalChain.filter((a) => a.level === 1);
+
+    for (const approver of level1Approvers) {
+      const approverDetails = await prisma.user.findUnique({
+        where: { id: approver.approverId },
+        select: { email: true, name: true },
+      });
+
+      if (approverDetails?.email) {
+        await sendApprovalNotification(
+          approverDetails.email,
+          approverDetails.name || '',
+          po.poNumber,
+          po.createdBy?.name || '',
+          po.totalAmount,
+          poId
+        );
+      }
+    }
+  }
+
   return approvals.length;
 }
 
@@ -179,12 +223,45 @@ export async function processApproval(
     },
   });
 
-  // If rejected, update PO status to REJECTED
+  // Get PO details with creator info for email notifications
+  const poDetails = await prisma.purchaseOrder.findUnique({
+    where: { id: approval.poId },
+    include: {
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  const approverDetails = await prisma.user.findUnique({
+    where: { id: approverId },
+    select: { name: true, email: true },
+  });
+
+  // If rejected, update PO status to REJECTED and notify creator
   if (decision === 'REJECTED') {
     await prisma.purchaseOrder.update({
       where: { id: approval.poId },
       data: { status: 'REJECTED' },
     });
+
+    // Send rejection email to creator
+    if (poDetails?.createdBy.email && approverDetails) {
+      await sendPORejectedNotification(
+        poDetails.createdBy.email,
+        poDetails.createdBy.name || '',
+        poDetails.poNumber,
+        approverDetails.name || '',
+        comments || '',
+        poDetails.totalAmount,
+        approval.poId
+      );
+    }
+
     return 'REJECTED';
   }
 
@@ -206,6 +283,30 @@ export async function processApproval(
   const nextLevelApprovals = allApprovals.filter((a) => a.level > approval.level);
 
   if (nextLevelApprovals.length > 0) {
+    // Notify next level approvers
+    const nextLevel = Math.min(...nextLevelApprovals.map((a) => a.level));
+    const nextLevelApproverIds = nextLevelApprovals
+      .filter((a) => a.level === nextLevel)
+      .map((a) => a.approverId);
+
+    for (const nextApproverId of nextLevelApproverIds) {
+      const nextApprover = await prisma.user.findUnique({
+        where: { id: nextApproverId },
+        select: { email: true, name: true },
+      });
+
+      if (nextApprover?.email && poDetails) {
+        await sendApprovalNotification(
+          nextApprover.email,
+          nextApprover.name || '',
+          poDetails.poNumber,
+          poDetails.createdBy?.name || '',
+          poDetails.totalAmount,
+          approval.poId
+        );
+      }
+    }
+
     // Still need higher level approvals
     return 'PENDING_APPROVAL';
   }
@@ -218,6 +319,43 @@ export async function processApproval(
       approvedAt: new Date(),
     },
   });
+
+  // Send approval notification to creator
+  if (poDetails?.createdBy.email && approverDetails) {
+    await sendPOApprovedNotification(
+      poDetails.createdBy.email,
+      poDetails.createdBy.name || '',
+      poDetails.poNumber,
+      approverDetails.name || '',
+      poDetails.totalAmount,
+      approval.poId
+    );
+  }
+
+  // Send PO to supplier with PDF attachment
+  const supplier = await prisma.supplier.findUnique({
+    where: { id: poDetails?.supplierId || '' },
+    select: { email: true, name: true },
+  });
+
+  if (supplier?.email && poDetails) {
+    try {
+      // Generate PDF
+      const pdfBuffer = await generatePOPDF(approval.poId);
+
+      // Send to supplier
+      await sendPOToSupplier(
+        supplier.email,
+        supplier.name || '',
+        poDetails.poNumber,
+        poDetails.totalAmount,
+        pdfBuffer
+      );
+    } catch (error) {
+      console.error('Failed to send PO to supplier:', error);
+      // Don't fail the approval if email fails
+    }
+  }
 
   return 'APPROVED';
 }

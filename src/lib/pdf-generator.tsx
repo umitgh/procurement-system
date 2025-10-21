@@ -284,3 +284,70 @@ export const PurchaseOrderPDF = ({ po }: { po: PurchaseOrderData }) => (
     </Page>
   </Document>
 );
+
+// Helper function to generate PDF buffer for email attachments
+export async function generatePOPDF(poId: string): Promise<Buffer> {
+  const { prisma } = await import('./prisma');
+  const { renderToBuffer } = await import('@react-pdf/renderer');
+  const { createElement } = await import('react');
+
+  // Fetch purchase order with all details
+  const purchaseOrder = await prisma.purchaseOrder.findUnique({
+    where: { id: poId },
+    include: {
+      supplier: {
+        select: {
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+        },
+      },
+      company: {
+        select: {
+          name: true,
+          logo: true,
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+      lineItems: {
+        select: {
+          itemSku: true,
+          itemName: true,
+          itemDescription: true,
+          unitPrice: true,
+          quantity: true,
+          lineTotal: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
+    },
+  });
+
+  if (!purchaseOrder) {
+    throw new Error('Purchase Order not found');
+  }
+
+  // Convert dates to strings for PDF component
+  const poData = {
+    ...purchaseOrder,
+    date: purchaseOrder.date.toISOString(),
+    createdAt: purchaseOrder.createdAt.toISOString(),
+    approvedAt: purchaseOrder.approvedAt?.toISOString(),
+    submittedAt: purchaseOrder.submittedAt?.toISOString(),
+  };
+
+  // Generate PDF
+  const pdfDocument = createElement(PurchaseOrderPDF, { po: poData }) as React.ReactElement;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfBuffer = await renderToBuffer(pdfDocument as any);
+
+  return Buffer.from(pdfBuffer);
+}
