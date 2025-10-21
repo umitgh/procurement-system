@@ -31,7 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from 'recharts';
 import { Pie, PieChart } from 'recharts';
 import {
   type ChartConfig,
@@ -423,32 +423,45 @@ export default function ReportsPage() {
                         config={{
                           totalSpent: {
                             label: 'סה"כ הוצאות',
-                            color: 'hsl(var(--chart-1))',
+                            color: 'var(--chart-1)',
                           },
                         }}
-                        className="h-[400px]"
                       >
                         <BarChart
+                          accessibilityLayer
                           data={reportData.data.byCompany.slice(0, 10)}
-                          margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                          margin={{ top: 20, right: 20, bottom: 80, left: 60 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <CartesianGrid vertical={false} />
                           <XAxis
                             dataKey="companyName"
                             angle={-45}
                             textAnchor="end"
                             height={100}
                             tick={{ fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickMargin={10}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tickMargin={8}
+                            tick={{ fontSize: 11 }}
                           />
                           <ChartTooltip
                             content={<ChartTooltipContent hideLabel />}
-                            formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                            cursor={false}
                           />
-                          <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={[8, 8, 0, 0]}>
+                          <Bar
+                            dataKey="totalSpent"
+                            fill="var(--color-totalSpent)"
+                            radius={8}
+                          >
                             <LabelList
                               className="fill-foreground"
-                              fontSize={11}
-                              offset={8}
+                              fontSize={12}
+                              offset={12}
                               position="top"
                               formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
                             />
@@ -468,30 +481,30 @@ export default function ReportsPage() {
                       <CardContent>
                         <ChartContainer
                           config={reportData.data.bySupplier.slice(0, 5).reduce((acc: any, item: any, idx: number) => {
-                            acc[item.supplierId] = {
+                            acc[`supplier${idx}`] = {
                               label: item.supplierName,
-                              color: `hsl(var(--chart-${idx + 1}))`,
+                              color: `var(--chart-${idx + 1})`,
                             };
                             return acc;
-                          }, {})}
-                          className="mx-auto aspect-square h-[400px]"
+                          }, {
+                            totalSpent: {
+                              label: 'סה"כ הוצאות',
+                            }
+                          })}
+                          className="mx-auto aspect-square max-h-[300px]"
                         >
                           <PieChart>
                             <Pie
                               data={reportData.data.bySupplier.slice(0, 5).map((item: any, idx: number) => ({
                                 ...item,
-                                fill: `hsl(var(--chart-${idx + 1}))`,
+                                fill: `var(--color-supplier${idx})`,
                               }))}
                               dataKey="totalSpent"
                               nameKey="supplierName"
                             />
-                            <ChartTooltip
-                              content={<ChartTooltipContent />}
-                              formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
-                            />
                             <ChartLegend
-                              content={<ChartLegendContent />}
-                              className="-translate-y-2 flex-wrap gap-2"
+                              content={<ChartLegendContent nameKey="supplierName" />}
+                              className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
                             />
                           </PieChart>
                         </ChartContainer>
@@ -541,32 +554,41 @@ export default function ReportsPage() {
                       config={{
                         totalSpent: {
                           label: 'סה"כ הוצאות',
-                          color: 'hsl(var(--chart-2))',
+                          color: 'var(--chart-2)',
                         },
                       }}
                       className="h-[400px]"
                     >
                       <BarChart
                         data={reportData.data.suppliers.slice(0, 10)}
-                        margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                        margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <CartesianGrid vertical={false} />
                         <XAxis
                           dataKey="supplierName"
                           angle={-45}
                           textAnchor="end"
                           height={100}
                           tick={{ fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={10}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={8}
+                          tick={{ fontSize: 11 }}
                         />
                         <ChartTooltip
                           content={<ChartTooltipContent hideLabel />}
-                          formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                          cursor={false}
                         />
-                        <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={[8, 8, 0, 0]}>
+                        <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={8}>
                           <LabelList
                             className="fill-foreground"
-                            fontSize={11}
-                            offset={8}
+                            fontSize={12}
+                            offset={12}
                             position="top"
                             formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
                           />
@@ -622,29 +644,41 @@ export default function ReportsPage() {
                       config={{
                         poCount: {
                           label: 'מספר הזמנות',
-                          color: 'hsl(var(--chart-3))',
+                          color: 'var(--chart-3)',
                         },
                       }}
                       className="h-[400px]"
                     >
                       <BarChart
                         data={reportData.data.users.slice(0, 10)}
-                        margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                        margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <CartesianGrid vertical={false} />
                         <XAxis
                           dataKey="userName"
                           angle={-45}
                           textAnchor="end"
                           height={100}
                           tick={{ fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={10}
                         />
-                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                        <Bar dataKey="poCount" fill="var(--color-poCount)" radius={[8, 8, 0, 0]}>
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={8}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <ChartTooltip
+                          content={<ChartTooltipContent hideLabel />}
+                          cursor={false}
+                        />
+                        <Bar dataKey="poCount" fill="var(--color-poCount)" radius={8}>
                           <LabelList
                             className="fill-foreground"
-                            fontSize={11}
-                            offset={8}
+                            fontSize={12}
+                            offset={12}
                             position="top"
                           />
                         </Bar>
@@ -698,32 +732,41 @@ export default function ReportsPage() {
                       config={{
                         totalSpent: {
                           label: 'סה"כ הוצאות',
-                          color: 'hsl(var(--chart-4))',
+                          color: 'var(--chart-4)',
                         },
                       }}
                       className="h-[400px]"
                     >
                       <BarChart
                         data={reportData.data.items.slice(0, 10)}
-                        margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                        margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <CartesianGrid vertical={false} />
                         <XAxis
                           dataKey="itemName"
                           angle={-45}
                           textAnchor="end"
                           height={100}
                           tick={{ fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={10}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={8}
+                          tick={{ fontSize: 11 }}
                         />
                         <ChartTooltip
                           content={<ChartTooltipContent hideLabel />}
-                          formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                          cursor={false}
                         />
-                        <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={[8, 8, 0, 0]}>
+                        <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={8}>
                           <LabelList
                             className="fill-foreground"
-                            fontSize={11}
-                            offset={8}
+                            fontSize={12}
+                            offset={12}
                             position="top"
                             formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
                           />
