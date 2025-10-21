@@ -7,13 +7,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
   BarChart3,
@@ -23,20 +16,32 @@ import {
   Building2,
   Users,
   Package,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 type DateRange = {
   from: string;
   to: string;
 };
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<DateRange>({
     from: '',
     to: '',
   });
   const [selectedReport, setSelectedReport] = useState<string>('spending');
+  const [reportData, setReportData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   const reportTypes = [
     {
@@ -65,17 +70,50 @@ export default function ReportsPage() {
     },
   ];
 
-  const handleGenerateReport = () => {
-    // TODO: Implement report generation
-    console.log('Generating report:', {
-      type: selectedReport,
-      dateRange,
-    });
+  const handleGenerateReport = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        type: selectedReport,
+      });
+      if (dateRange.from) params.append('from', dateRange.from);
+      if (dateRange.to) params.append('to', dateRange.to);
+
+      const res = await fetch(`/api/reports?${params.toString()}`);
+      const data = await res.json();
+
+      if (data.success) {
+        setReportData(data);
+      } else {
+        console.error('Failed to generate report:', data);
+      }
+    } catch (error) {
+      console.error('Error generating report:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExportReport = (format: 'pdf' | 'excel' | 'csv') => {
-    // TODO: Implement export functionality
-    console.log('Exporting report as:', format);
+  const handleExportReport = async (format: 'pdf' | 'excel' | 'csv') => {
+    if (!reportData) {
+      alert('אנא הפק דוח תחילה');
+      return;
+    }
+
+    if (format === 'excel' || format === 'csv') {
+      // For now, download as JSON (Excel export would require xlsx library)
+      const dataStr = JSON.stringify(reportData.data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report-${selectedReport}-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === 'pdf') {
+      // PDF export would require integrating with pdf-generator
+      alert('PDF export coming soon');
+    }
   };
 
   return (
@@ -213,9 +251,18 @@ export default function ReportsPage() {
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t">
-            <Button onClick={handleGenerateReport} className="flex-1">
-              <BarChart3 className="ml-2 h-4 w-4" />
-              הפק דוח
+            <Button onClick={handleGenerateReport} className="flex-1" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  מפיק דוח...
+                </>
+              ) : (
+                <>
+                  <BarChart3 className="ml-2 h-4 w-4" />
+                  הפק דוח
+                </>
+              )}
             </Button>
             <Button
               variant="outline"
@@ -247,18 +294,171 @@ export default function ReportsPage() {
         <CardHeader>
           <CardTitle>תצוגה מקדימה של הדוח</CardTitle>
           <CardDescription>
-            הדוח יוצג כאן לאחר בחירת פרמטרים והפקה
+            {reportData ? `דוח ${reportTypes.find(r => r.id === selectedReport)?.title}` : 'הדוח יוצג כאן לאחר בחירת פרמטרים והפקה'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">טרם נוצר דוח</h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              בחר סוג דוח, טווח תאריכים ולחץ על &quot;הפק דוח&quot; כדי לראות את התוצאות כאן.
-              לאחר מכן תוכל לייצא את הדוח לפורמט המועדף עליך.
-            </p>
-          </div>
+          {!reportData ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">טרם נוצר דוח</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                בחר סוג דוח, טווח תאריכים ולחץ על &quot;הפק דוח&quot; כדי לראות את התוצאות כאן.
+                לאחר מכן תוכל לייצא את הדוח לפורמט המועדף עליך.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Summary Stats */}
+              {reportData.data.summary && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                  {Object.entries(reportData.data.summary).map(([key, value]) => (
+                    <div key={key} className="text-center">
+                      <p className="text-sm text-gray-600">{key}</p>
+                      <p className="text-2xl font-bold">
+                        {typeof value === 'number' ? value.toLocaleString() : String(value)}
+                        {key.includes('Spending') || key.includes('Amount') ? ' ₪' : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Spending Report */}
+              {selectedReport === 'spending' && reportData.data.byCompany && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">הוצאות לפי חברה</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>חברה</TableHead>
+                        <TableHead>סה&quot;כ הזמנות</TableHead>
+                        <TableHead>סה&quot;כ הוצאות</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.byCompany.map((company: any) => (
+                        <TableRow key={company.companyId}>
+                          <TableCell>{company.companyName}</TableCell>
+                          <TableCell>{company.poCount}</TableCell>
+                          <TableCell>{company.totalSpent.toLocaleString()} ₪</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <h3 className="text-lg font-semibold mt-6">הוצאות לפי ספק</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ספק</TableHead>
+                        <TableHead>סה&quot;כ הזמנות</TableHead>
+                        <TableHead>סה&quot;כ הוצאות</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.bySupplier.map((supplier: any) => (
+                        <TableRow key={supplier.supplierId}>
+                          <TableCell>{supplier.supplierName}</TableCell>
+                          <TableCell>{supplier.poCount}</TableCell>
+                          <TableCell>{supplier.totalSpent.toLocaleString()} ₪</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Suppliers Report */}
+              {selectedReport === 'suppliers' && reportData.data.suppliers && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">פירוט ספקים</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>שם ספק</TableHead>
+                        <TableHead>אימייל</TableHead>
+                        <TableHead>טלפון</TableHead>
+                        <TableHead>הזמנות</TableHead>
+                        <TableHead>סה&quot;כ</TableHead>
+                        <TableHead>ממוצע</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.suppliers.map((supplier: any) => (
+                        <TableRow key={supplier.supplierId}>
+                          <TableCell>{supplier.supplierName}</TableCell>
+                          <TableCell>{supplier.supplierEmail || '-'}</TableCell>
+                          <TableCell>{supplier.supplierPhone || '-'}</TableCell>
+                          <TableCell>{supplier.poCount}</TableCell>
+                          <TableCell>{supplier.totalSpent.toLocaleString()} ₪</TableCell>
+                          <TableCell>{supplier.avgPOAmount.toLocaleString()} ₪</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Users Report */}
+              {selectedReport === 'users' && reportData.data.users && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">פעילות משתמשים</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>שם משתמש</TableHead>
+                        <TableHead>אימייל</TableHead>
+                        <TableHead>הזמנות</TableHead>
+                        <TableHead>סה&quot;כ</TableHead>
+                        <TableHead>ממוצע</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.users.map((user: any) => (
+                        <TableRow key={user.userId}>
+                          <TableCell>{user.userName}</TableCell>
+                          <TableCell>{user.userEmail}</TableCell>
+                          <TableCell>{user.poCount}</TableCell>
+                          <TableCell>{user.totalSpent.toLocaleString()} ₪</TableCell>
+                          <TableCell>{user.avgPOAmount.toLocaleString()} ₪</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Items Report */}
+              {selectedReport === 'items' && reportData.data.items && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">ניתוח פריטים</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>שם פריט</TableHead>
+                        <TableHead>כמות</TableHead>
+                        <TableHead>סה&quot;כ</TableHead>
+                        <TableHead>מחיר ממוצע</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.items.slice(0, 20).map((item: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.itemSku || '-'}</TableCell>
+                          <TableCell>{item.itemName}</TableCell>
+                          <TableCell>{item.totalQuantity}</TableCell>
+                          <TableCell>{item.totalSpent.toLocaleString()} ₪</TableCell>
+                          <TableCell>{item.avgPrice.toLocaleString()} ₪</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -28,7 +28,7 @@ async function createTransporter() {
     return null;
   }
 
-  return nodemailer.createTransporter(config);
+  return nodemailer.createTransport(config);
 }
 
 // Log email sending
@@ -36,7 +36,7 @@ async function logEmail(
   to: string,
   subject: string,
   body: string,
-  status: 'SUCCESS' | 'FAILED',
+  status: 'SENT' | 'FAILED',
   errorMessage?: string
 ) {
   try {
@@ -47,6 +47,7 @@ async function logEmail(
         body,
         status,
         errorMessage: errorMessage || null,
+        sentAt: status === 'SENT' ? new Date() : null,
       },
     });
   } catch (error) {
@@ -82,7 +83,7 @@ export async function sendEmail(
       attachments,
     });
 
-    await logEmail(to, subject, html, 'SUCCESS');
+    await logEmail(to, subject, html, 'SENT');
     console.log(`Email sent successfully to ${to}`);
     return true;
   } catch (error) {

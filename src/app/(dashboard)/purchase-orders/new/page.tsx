@@ -207,12 +207,25 @@ export default function NewPurchaseOrderPage() {
 
     setSaving(true);
     try {
+      // Clean line items - remove tempId and lineTotal, convert undefined to null
+      const cleanedLineItems = lineItems.map(({ tempId, lineTotal, ...item }) => ({
+        itemId: item.itemId || null,
+        itemName: item.itemName,
+        itemDescription: item.itemDescription || null,
+        itemSku: item.itemSku || null,
+        character1: item.character1 || null,
+        character2: item.character2 || null,
+        character3: item.character3 || null,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      }));
+
       const res = await fetch('/api/purchase-orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          lineItems: lineItems.map(({ tempId, lineTotal, ...item }) => item),
+          lineItems: cleanedLineItems,
         }),
       });
 
