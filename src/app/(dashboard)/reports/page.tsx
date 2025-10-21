@@ -1,5 +1,5 @@
 // app/(dashboard)/reports/page.tsx
-// Enhanced reports with BI dashboard and charts
+// Redesigned reports page with improved UX using my-patterns
 
 'use client';
 
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   BarChart3,
   Download,
@@ -18,6 +19,7 @@ import {
   Package,
   Loader2,
   AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -29,8 +31,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, ResponsiveContainer, Legend } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from 'recharts';
+import { Pie, PieChart } from 'recharts';
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart';
 
 type DateRange = {
   from: string;
@@ -43,7 +53,7 @@ export default function ReportsPage() {
     from: '',
     to: '',
   });
-  const [selectedReport, setSelectedReport] = useState<string>('spending');
+  const [selectedReport, setSelectedReport] = useState<string>('');
   const [reportData, setReportData] = useState<any>(null);
   const [supplierMonitoring, setSupplierMonitoring] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -108,577 +118,654 @@ export default function ReportsPage() {
     }
   };
 
-  const handleExportReport = async (format: 'pdf' | 'excel' | 'csv') => {
-    if (!reportData) {
-      alert('אנא הפק דוח תחילה');
+  const setQuickDateRange = (range: 'current-month' | 'last-month' | 'current-year' | 'last-year') => {
+    const now = new Date();
+    let from: Date;
+    let to: Date;
+
+    switch (range) {
+      case 'current-month':
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+        to = now;
+        break;
+      case 'last-month':
+        from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        to = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case 'current-year':
+        from = new Date(now.getFullYear(), 0, 1);
+        to = now;
+        break;
+      case 'last-year':
+        from = new Date(now.getFullYear() - 1, 0, 1);
+        to = new Date(now.getFullYear() - 1, 11, 31);
+        break;
+    }
+
+    setDateRange({
+      from: from.toISOString().split('T')[0],
+      to: to.toISOString().split('T')[0],
+    });
+  };
+
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    if (format === 'pdf') {
+      alert('PDF export will be available soon');
       return;
     }
 
-    try {
-      if (format === 'csv') {
-        // Convert data to CSV
-        let csvContent = '';
+    if (!reportData || !reportData.data) return;
 
-        if (selectedReport === 'spending' && reportData.data.byCompany) {
-          csvContent = 'Company,PO Count,Total Spent\n';
-          reportData.data.byCompany.forEach((company: any) => {
-            csvContent += `"${company.companyName}",${company.poCount},${company.totalSpent}\n`;
-          });
-        } else if (selectedReport === 'suppliers' && reportData.data.suppliers) {
-          csvContent = 'Supplier,Email,Phone,PO Count,Total Spent,Average PO\n';
-          reportData.data.suppliers.forEach((supplier: any) => {
-            csvContent += `"${supplier.supplierName}","${supplier.supplierEmail || ''}","${supplier.supplierPhone || ''}",${supplier.poCount},${supplier.totalSpent},${supplier.avgPOAmount}\n`;
-          });
-        } else if (selectedReport === 'users' && reportData.data.users) {
-          csvContent = 'User,Email,PO Count,Total Spent,Average PO\n';
-          reportData.data.users.forEach((user: any) => {
-            csvContent += `"${user.userName}","${user.userEmail}",${user.poCount},${user.totalSpent},${user.avgPOAmount}\n`;
-          });
-        } else if (selectedReport === 'items' && reportData.data.items) {
-          csvContent = 'SKU,Item Name,Quantity,Total Spent,Average Price\n';
-          reportData.data.items.forEach((item: any) => {
-            csvContent += `"${item.itemSku || ''}","${item.itemName}",${item.totalQuantity},${item.totalSpent},${item.avgPrice}\n`;
-          });
-        }
+    let csvContent = '';
+    const data = reportData.data;
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `report-${selectedReport}-${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else if (format === 'excel') {
-        // For Excel, we'll use JSON for now (would need xlsx library for real Excel)
-        const dataStr = JSON.stringify(reportData.data, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `report-${selectedReport}-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else if (format === 'pdf') {
-        alert('PDF export will be available soon - requires additional server-side processing');
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      alert('שגיאה ביצוא הדוח');
+    if (selectedReport === 'spending' && data.byCompany) {
+      csvContent = 'Company,Total Spent,PO Count,Average PO\n';
+      data.byCompany.forEach((item: any) => {
+        csvContent += `${item.companyName},${item.totalSpent},${item.poCount},${item.avgPOAmount}\n`;
+      });
     }
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedReport}-report.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
-  // Chart colors
-  const CHART_COLORS = [
-    'hsl(var(--chart-1))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
-  ];
+  // Calculate supplier monitoring alerts
+  const criticalAlerts = supplierMonitoring?.exceedingSuppliers || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">דוחות וניתוח</h1>
         <p className="text-gray-600">צפייה בדוחות, גרפים ויצוא נתונים</p>
       </div>
 
-      {/* 100K Supplier Alert */}
-      {supplierMonitoring && supplierMonitoring.summary.suppliersExceedingThreshold > 0 && (
+      {/* Supplier Monitoring Alert - Only show if there are alerts */}
+      {criticalAlerts.length > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>אזהרה: ספקים חרגו מתקציב חודשי</AlertTitle>
+          <AlertTitle>אזהרת הוצאות קריטית</AlertTitle>
           <AlertDescription>
-            {supplierMonitoring.summary.suppliersExceedingThreshold} ספקים חרגו מתקציב של ₪100,000 בחודש{' '}
-            {supplierMonitoring.summary.currentMonth}. נדרש אישור מנכ״ל להזמנות נוספות לספקים אלה.
-            <div className="mt-2">
-              <strong>ספקים חורגים:</strong>{' '}
-              {supplierMonitoring.exceedingSuppliers.map((s: any) => (
-                <span key={s.supplierId} className="mr-2">
-                  {s.supplierName} (₪{s.totalSpent.toLocaleString()})
-                </span>
-              ))}
-            </div>
+            {criticalAlerts.length} ספקים חרגו מ-100,000 ₪ החודש
           </AlertDescription>
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {reportTypes.map((report) => {
-          const Icon = report.icon;
-          return (
-            <Card
-              key={report.id}
-              className={cn(
-                'cursor-pointer transition-all hover:shadow-md',
-                selectedReport === report.id && 'border-primary border-2'
-              )}
-              onClick={() => setSelectedReport(report.id)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">{report.title}</CardTitle>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">{report.description}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
+      {/* STEP 1: Select Report Type */}
       <Card>
         <CardHeader>
-          <CardTitle>הגדרות דוח</CardTitle>
-          <CardDescription>בחר פרמטרים לדוח</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
+              1
+            </div>
+            <div>
+              <CardTitle>בחר סוג דוח</CardTitle>
+              <CardDescription>בחר את סוג הדוח שברצונך להפיק</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Date Range Picker */}
-          <div className="space-y-2">
-            <Label>טווח תאריכים</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label htmlFor="fromDate" className="text-sm text-muted-foreground">
-                  מתאריך
-                </Label>
-                <Input
-                  id="fromDate"
-                  type="date"
-                  value={dateRange.from}
-                  onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="toDate" className="text-sm text-muted-foreground">
-                  עד תאריך
-                </Label>
-                <Input
-                  id="toDate"
-                  type="date"
-                  value={dateRange.to}
-                  onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Date Filters */}
-          <div className="space-y-2">
-            <Label>טווחי זמן מוגדרים מראש</Label>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const now = new Date();
-                  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                  setDateRange({
-                    from: firstDayOfMonth.toISOString().split('T')[0],
-                    to: now.toISOString().split('T')[0]
-                  });
-                }}
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {reportTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedReport(type.id)}
+                className={cn(
+                  'relative flex flex-col items-center gap-3 p-6 rounded-lg border-2 transition-all hover:shadow-md',
+                  selectedReport === type.id
+                    ? 'border-primary bg-primary/5 shadow-lg'
+                    : 'border-gray-200 hover:border-primary/50'
+                )}
               >
-                החודש הנוכחי
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const now = new Date();
-                  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                  const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-                  setDateRange({
-                    from: lastMonth.toISOString().split('T')[0],
-                    to: lastDayOfLastMonth.toISOString().split('T')[0]
-                  });
-                }}
-              >
-                החודש הקודם
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const now = new Date();
-                  const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
-                  setDateRange({
-                    from: firstDayOfYear.toISOString().split('T')[0],
-                    to: now.toISOString().split('T')[0]
-                  });
-                }}
-              >
-                השנה הנוכחית
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const now = new Date();
-                  const lastYear = new Date(now.getFullYear() - 1, 0, 1);
-                  const endOfLastYear = new Date(now.getFullYear() - 1, 11, 31);
-                  setDateRange({
-                    from: lastYear.toISOString().split('T')[0],
-                    to: endOfLastYear.toISOString().split('T')[0]
-                  });
-                }}
-              >
-                שנה שעברה
-              </Button>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button onClick={handleGenerateReport} className="flex-1" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  מפיק דוח...
-                </>
-              ) : (
-                <>
-                  <BarChart3 className="ml-2 h-4 w-4" />
-                  הפק דוח
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleExportReport('pdf')}
-              disabled={!reportData}
-            >
-              <Download className="ml-2 h-4 w-4" />
-              PDF
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleExportReport('csv')}
-              disabled={!reportData}
-            >
-              <Download className="ml-2 h-4 w-4" />
-              CSV
-            </Button>
+                {selectedReport === type.id && (
+                  <div className="absolute top-2 right-2">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                <div className={cn(
+                  'p-3 rounded-full',
+                  selectedReport === type.id ? 'bg-primary text-primary-foreground' : 'bg-gray-100 text-gray-600'
+                )}>
+                  <type.icon className="h-6 w-6" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold">{type.title}</p>
+                  <p className="text-sm text-gray-600 mt-1">{type.description}</p>
+                </div>
+                {selectedReport === type.id && (
+                  <Badge className="mt-2">נבחר</Badge>
+                )}
+              </button>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Report Preview with Charts */}
-      {!reportData ? (
+      {/* STEP 2: Set Date Range - Only show if report type selected */}
+      {selectedReport && (
         <Card>
           <CardHeader>
-            <CardTitle>תצוגה מקדימה של הדוח</CardTitle>
-            <CardDescription>הדוח יוצג כאן לאחר בחירת פרמטרים והפקה</CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
+                2
+              </div>
+              <div>
+                <CardTitle>בחר טווח תאריכים</CardTitle>
+                <CardDescription>קבע את תקופת הדוח או בחר טווח מוגדר מראש</CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">טרם נוצר דוח</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                בחר סוג דוח, טווח תאריכים ולחץ על &quot;הפק דוח&quot; כדי לראות את התוצאות כאן.
-              </p>
+          <CardContent className="space-y-6">
+            {/* Quick Date Filters */}
+            <div>
+              <Label className="text-base font-semibold mb-3 block">טווחי זמן מוגדרים מראש</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setQuickDateRange('current-month')}
+                  className="h-auto py-3"
+                >
+                  החודש הנוכחי
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setQuickDateRange('last-month')}
+                  className="h-auto py-3"
+                >
+                  החודש הקודם
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setQuickDateRange('current-year')}
+                  className="h-auto py-3"
+                >
+                  השנה הנוכחית
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setQuickDateRange('last-year')}
+                  className="h-auto py-3"
+                >
+                  שנה שעברה
+                </Button>
+              </div>
+            </div>
+
+            {/* Manual Date Range */}
+            <div>
+              <Label className="text-base font-semibold mb-3 block">או בחר טווח מותאם אישית</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="from-date" className="mb-2 block">מתאריך</Label>
+                  <Input
+                    id="from-date"
+                    type="date"
+                    value={dateRange.from}
+                    onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+                    className="text-lg"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="to-date" className="mb-2 block">עד תאריך</Label>
+                  <Input
+                    id="to-date"
+                    type="date"
+                    value={dateRange.to}
+                    onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+                    className="text-lg"
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-6">
-          {/* Summary Stats */}
-          {reportData.data.summary && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(reportData.data.summary).map(([key, value]) => (
-                <Card key={key}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      {key === 'totalSpending' && 'סה"כ הוצאות'}
-                      {key === 'totalPOs' && 'סה"כ הזמנות'}
-                      {key === 'averagePOAmount' && 'ממוצע הזמנה'}
-                      {key === 'totalSuppliers' && 'סה"כ ספקים'}
-                      {key === 'totalUsers' && 'סה"כ משתמשים'}
-                      {key === 'totalUniqueItems' && 'סה"כ פריטים'}
-                      {key === 'totalQuantity' && 'סה"כ כמות'}
-                      {!['totalSpending', 'totalPOs', 'averagePOAmount', 'totalSuppliers', 'totalUsers', 'totalUniqueItems', 'totalQuantity'].includes(key) && key}
-                    </CardTitle>
+      )}
+
+      {/* STEP 3: Generate Report - Only show if report type and dates selected */}
+      {selectedReport && dateRange.from && dateRange.to && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
+                3
+              </div>
+              <div>
+                <CardTitle>הפק דוח</CardTitle>
+                <CardDescription>לחץ להפקת הדוח עם הפרמטרים שנבחרו</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handleGenerateReport}
+              disabled={loading}
+              size="lg"
+              className="w-full md:w-auto text-lg px-8 py-6"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="ml-2 h-5 w-5 animate-spin" />
+                  מפיק דוח...
+                </>
+              ) : (
+                <>
+                  <BarChart3 className="ml-2 h-5 w-5" />
+                  הפק דוח
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* RESULTS SECTION - Only show after report generated */}
+      {reportData && reportData.data && (
+        <Card className="border-2 border-primary/20">
+          <CardHeader className="bg-primary/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">תוצאות הדוח</CardTitle>
+                <CardDescription className="text-base">
+                  {reportTypes.find(t => t.id === selectedReport)?.title} • {dateRange.from} - {dateRange.to}
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => handleExport('pdf')}>
+                  <FileText className="ml-2 h-4 w-4" />
+                  PDF
+                </Button>
+                <Button variant="outline" onClick={() => handleExport('csv')}>
+                  <Download className="ml-2 h-4 w-4" />
+                  CSV
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {/* Summary Cards */}
+            {reportData.data.summary && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                {Object.entries(reportData.data.summary).map(([key, value]) => (
+                  <Card key={key}>
+                    <CardHeader className="pb-2">
+                      <CardDescription className="text-xs uppercase">{key}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">
+                        {typeof value === 'number'
+                          ? value.toLocaleString('he-IL')
+                          : value != null ? String(value) : '0'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Spending Report Charts */}
+            {selectedReport === 'spending' && reportData.data.byCompany && (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Bar Chart - Spending by Company */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>הוצאות לפי חברה - תצוגה גרפית</CardTitle>
+                      <CardDescription>Top 10 חברות</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ChartContainer
+                        config={{
+                          totalSpent: {
+                            label: 'סה"כ הוצאות',
+                            color: 'hsl(var(--chart-1))',
+                          },
+                        }}
+                        className="h-[400px]"
+                      >
+                        <BarChart
+                          data={reportData.data.byCompany.slice(0, 10)}
+                          margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis
+                            dataKey="companyName"
+                            angle={-45}
+                            textAnchor="end"
+                            height={100}
+                            tick={{ fontSize: 11 }}
+                          />
+                          <ChartTooltip
+                            content={<ChartTooltipContent hideLabel />}
+                            formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                          />
+                          <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={[8, 8, 0, 0]}>
+                            <LabelList
+                              className="fill-foreground"
+                              fontSize={11}
+                              offset={8}
+                              position="top"
+                              formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                            />
+                          </Bar>
+                        </BarChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* Pie Chart - Spending by Supplier */}
+                  {reportData.data.bySupplier && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>התפלגות הוצאות לפי ספק</CardTitle>
+                        <CardDescription>Top 5 ספקים</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ChartContainer
+                          config={reportData.data.bySupplier.slice(0, 5).reduce((acc: any, item: any, idx: number) => {
+                            acc[item.supplierId] = {
+                              label: item.supplierName,
+                              color: `hsl(var(--chart-${idx + 1}))`,
+                            };
+                            return acc;
+                          }, {})}
+                          className="mx-auto aspect-square h-[400px]"
+                        >
+                          <PieChart>
+                            <Pie
+                              data={reportData.data.bySupplier.slice(0, 5).map((item: any, idx: number) => ({
+                                ...item,
+                                fill: `hsl(var(--chart-${idx + 1}))`,
+                              }))}
+                              dataKey="totalSpent"
+                              nameKey="supplierName"
+                            />
+                            <ChartTooltip
+                              content={<ChartTooltipContent />}
+                              formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                            />
+                            <ChartLegend
+                              content={<ChartLegendContent />}
+                              className="-translate-y-2 flex-wrap gap-2"
+                            />
+                          </PieChart>
+                        </ChartContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                {/* Data Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>פירוט מלא - הוצאות לפי חברה</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">
-                      {typeof value === 'number'
-                        ? value.toLocaleString('he-IL')
-                        : value != null ? String(value) : '0'}
-                      {(key.includes('Spending') || key.includes('Amount')) && ' ₪'}
-                    </p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>חברה</TableHead>
+                          <TableHead>סה״כ הזמנות</TableHead>
+                          <TableHead>סה״כ הוצאות</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {reportData.data.byCompany.map((company: any) => (
+                          <TableRow key={company.companyId}>
+                            <TableCell>{company.companyName}</TableCell>
+                            <TableCell>{company.poCount}</TableCell>
+                            <TableCell>₪{company.totalSpent.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Spending Report with Charts */}
-          {selectedReport === 'spending' && reportData.data.byCompany && (
-            <div className="space-y-6">
-              {/* Bar Chart - Spending by Company */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>הוצאות לפי חברה</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={{}} className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={reportData.data.byCompany.slice(0, 10)}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="companyName"
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                        />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="totalSpent" fill="hsl(var(--chart-1))" name="סה״כ הוצאות" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-
-              {/* Pie Chart - Spending by Supplier */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>התפלגות הוצאות לפי ספק (Top 5)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={{}} className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={reportData.data.bySupplier.slice(0, 5)}
-                          dataKey="totalSpent"
-                          nameKey="supplierName"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          label={(entry) => `${entry.supplierName}: ₪${entry.totalSpent.toLocaleString()}`}
-                        >
-                          {reportData.data.bySupplier.slice(0, 5).map((_: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-
-              {/* Table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>פירוט הוצאות לפי חברה</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>חברה</TableHead>
-                        <TableHead>סה&quot;כ הזמנות</TableHead>
-                        <TableHead>סה&quot;כ הוצאות</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData.data.byCompany.map((company: any) => (
-                        <TableRow key={company.companyId}>
-                          <TableCell>{company.companyName}</TableCell>
-                          <TableCell>{company.poCount}</TableCell>
-                          <TableCell>₪{company.totalSpent.toLocaleString()}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Suppliers Report */}
-          {selectedReport === 'suppliers' && reportData.data.suppliers && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>ספקים מובילים</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={{}} className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={reportData.data.suppliers.slice(0, 10)}>
-                        <CartesianGrid strokeDasharray="3 3" />
+            {/* Suppliers Report */}
+            {selectedReport === 'suppliers' && reportData.data.suppliers && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>ספקים מובילים - תצוגה גרפית</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{
+                        totalSpent: {
+                          label: 'סה"כ הוצאות',
+                          color: 'hsl(var(--chart-2))',
+                        },
+                      }}
+                      className="h-[400px]"
+                    >
+                      <BarChart
+                        data={reportData.data.suppliers.slice(0, 10)}
+                        margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis
                           dataKey="supplierName"
                           angle={-45}
                           textAnchor="end"
                           height={100}
+                          tick={{ fontSize: 11 }}
                         />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="totalSpent" fill="hsl(var(--chart-2))" name="סה״כ הוצאות" />
+                        <ChartTooltip
+                          content={<ChartTooltipContent hideLabel />}
+                          formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                        />
+                        <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={[8, 8, 0, 0]}>
+                          <LabelList
+                            className="fill-foreground"
+                            fontSize={11}
+                            offset={8}
+                            position="top"
+                            formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                          />
+                        </Bar>
                       </BarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>פירוט ספקים</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>שם ספק</TableHead>
-                        <TableHead>אימייל</TableHead>
-                        <TableHead>טלפון</TableHead>
-                        <TableHead>הזמנות</TableHead>
-                        <TableHead>סה&quot;כ</TableHead>
-                        <TableHead>ממוצע</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData.data.suppliers.map((supplier: any) => (
-                        <TableRow key={supplier.supplierId}>
-                          <TableCell>{supplier.supplierName}</TableCell>
-                          <TableCell>{supplier.supplierEmail || '-'}</TableCell>
-                          <TableCell>{supplier.supplierPhone || '-'}</TableCell>
-                          <TableCell>{supplier.poCount}</TableCell>
-                          <TableCell>₪{supplier.totalSpent.toLocaleString()}</TableCell>
-                          <TableCell>₪{supplier.avgPOAmount.toLocaleString()}</TableCell>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>פירוט ספקים</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>שם ספק</TableHead>
+                          <TableHead>אימייל</TableHead>
+                          <TableHead>טלפון</TableHead>
+                          <TableHead>הזמנות</TableHead>
+                          <TableHead>סה״כ</TableHead>
+                          <TableHead>ממוצע</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                      </TableHeader>
+                      <TableBody>
+                        {reportData.data.suppliers.map((supplier: any) => (
+                          <TableRow key={supplier.supplierId}>
+                            <TableCell>{supplier.supplierName}</TableCell>
+                            <TableCell>{supplier.supplierEmail}</TableCell>
+                            <TableCell>{supplier.supplierPhone}</TableCell>
+                            <TableCell>{supplier.poCount}</TableCell>
+                            <TableCell>₪{supplier.totalSpent.toLocaleString()}</TableCell>
+                            <TableCell>₪{supplier.avgPOAmount.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-          {/* Users Report */}
-          {selectedReport === 'users' && reportData.data.users && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>פעילות משתמשים</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={{}} className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={reportData.data.users.slice(0, 10)}>
-                        <CartesianGrid strokeDasharray="3 3" />
+            {/* Users Report */}
+            {selectedReport === 'users' && reportData.data.users && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>פעילות משתמשים - תצוגה גרפית</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{
+                        poCount: {
+                          label: 'מספר הזמנות',
+                          color: 'hsl(var(--chart-3))',
+                        },
+                      }}
+                      className="h-[400px]"
+                    >
+                      <BarChart
+                        data={reportData.data.users.slice(0, 10)}
+                        margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis
                           dataKey="userName"
                           angle={-45}
                           textAnchor="end"
                           height={100}
+                          tick={{ fontSize: 11 }}
                         />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="poCount" fill="hsl(var(--chart-3))" name="מספר הזמנות" />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <Bar dataKey="poCount" fill="var(--color-poCount)" radius={[8, 8, 0, 0]}>
+                          <LabelList
+                            className="fill-foreground"
+                            fontSize={11}
+                            offset={8}
+                            position="top"
+                          />
+                        </Bar>
                       </BarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>פירוט משתמשים</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>שם משתמש</TableHead>
-                        <TableHead>אימייל</TableHead>
-                        <TableHead>הזמנות</TableHead>
-                        <TableHead>סה&quot;כ</TableHead>
-                        <TableHead>ממוצע</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData.data.users.map((user: any) => (
-                        <TableRow key={user.userId}>
-                          <TableCell>{user.userName}</TableCell>
-                          <TableCell>{user.userEmail}</TableCell>
-                          <TableCell>{user.poCount}</TableCell>
-                          <TableCell>₪{user.totalSpent.toLocaleString()}</TableCell>
-                          <TableCell>₪{user.avgPOAmount.toLocaleString()}</TableCell>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>פירוט משתמשים</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>שם משתמש</TableHead>
+                          <TableHead>אימייל</TableHead>
+                          <TableHead>הזמנות</TableHead>
+                          <TableHead>סה״כ</TableHead>
+                          <TableHead>ממוצע</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                      </TableHeader>
+                      <TableBody>
+                        {reportData.data.users.map((user: any) => (
+                          <TableRow key={user.userId}>
+                            <TableCell>{user.userName}</TableCell>
+                            <TableCell>{user.userEmail}</TableCell>
+                            <TableCell>{user.poCount}</TableCell>
+                            <TableCell>₪{user.totalSpent.toLocaleString()}</TableCell>
+                            <TableCell>₪{user.avgPOAmount.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-          {/* Items Report */}
-          {selectedReport === 'items' && reportData.data.items && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>פריטים מובילים (Top 10)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={{}} className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={reportData.data.items.slice(0, 10)}>
-                        <CartesianGrid strokeDasharray="3 3" />
+            {/* Items Report */}
+            {selectedReport === 'items' && reportData.data.items && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>פריטים מובילים - תצוגה גרפית</CardTitle>
+                    <CardDescription>Top 10 פריטים</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{
+                        totalSpent: {
+                          label: 'סה"כ הוצאות',
+                          color: 'hsl(var(--chart-4))',
+                        },
+                      }}
+                      className="h-[400px]"
+                    >
+                      <BarChart
+                        data={reportData.data.items.slice(0, 10)}
+                        margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis
                           dataKey="itemName"
                           angle={-45}
                           textAnchor="end"
                           height={100}
+                          tick={{ fontSize: 11 }}
                         />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="totalSpent" fill="hsl(var(--chart-4))" name="סה״כ הוצאות" />
+                        <ChartTooltip
+                          content={<ChartTooltipContent hideLabel />}
+                          formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                        />
+                        <Bar dataKey="totalSpent" fill="var(--color-totalSpent)" radius={[8, 8, 0, 0]}>
+                          <LabelList
+                            className="fill-foreground"
+                            fontSize={11}
+                            offset={8}
+                            position="top"
+                            formatter={(value: any) => `₪${value.toLocaleString('he-IL')}`}
+                          />
+                        </Bar>
                       </BarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>ניתוח פריטים</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>SKU</TableHead>
-                        <TableHead>שם פריט</TableHead>
-                        <TableHead>כמות</TableHead>
-                        <TableHead>סה&quot;כ</TableHead>
-                        <TableHead>מחיר ממוצע</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData.data.items.slice(0, 20).map((item: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.itemSku || '-'}</TableCell>
-                          <TableCell>{item.itemName}</TableCell>
-                          <TableCell>{item.totalQuantity}</TableCell>
-                          <TableCell>₪{item.totalSpent.toLocaleString()}</TableCell>
-                          <TableCell>₪{item.avgPrice.toLocaleString()}</TableCell>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>ניתוח פריטים</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>SKU</TableHead>
+                          <TableHead>שם פריט</TableHead>
+                          <TableHead>כמות</TableHead>
+                          <TableHead>סה״כ</TableHead>
+                          <TableHead>מחיר ממוצע</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
+                      </TableHeader>
+                      <TableBody>
+                        {reportData.data.items.slice(0, 20).map((item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.itemSku || '-'}</TableCell>
+                            <TableCell>{item.itemName}</TableCell>
+                            <TableCell>{item.totalQuantity}</TableCell>
+                            <TableCell>₪{item.totalSpent.toLocaleString()}</TableCell>
+                            <TableCell>₪{item.avgPrice.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
