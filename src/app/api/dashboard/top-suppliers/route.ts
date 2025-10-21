@@ -27,6 +27,7 @@ export async function GET() {
       select: {
         supplierId: true,
         totalAmount: true,
+        approvedAt: true,
         supplier: {
           select: {
             id: true,
@@ -36,18 +37,32 @@ export async function GET() {
       },
     });
 
-    // Aggregate by supplier
-    const supplierMap = new Map<string, { name: string; totalSpent: number; poCount: number }>();
+    // Calculate current month range
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // Aggregate by supplier with monthly tracking
+    const supplierMap = new Map<
+      string,
+      { name: string; totalSpent: number; monthlySpent: number; poCount: number }
+    >();
 
     approvedPOs.forEach((po) => {
       const existing = supplierMap.get(po.supplierId);
+      const isCurrentMonth = po.approvedAt && po.approvedAt >= monthStart && po.approvedAt <= monthEnd;
+
       if (existing) {
         existing.totalSpent += po.totalAmount;
         existing.poCount += 1;
+        if (isCurrentMonth) {
+          existing.monthlySpent += po.totalAmount;
+        }
       } else {
         supplierMap.set(po.supplierId, {
           name: po.supplier.name,
           totalSpent: po.totalAmount,
+          monthlySpent: isCurrentMonth ? po.totalAmount : 0,
           poCount: 1,
         });
       }
@@ -59,6 +74,7 @@ export async function GET() {
         supplierId,
         supplierName: data.name,
         totalSpent: data.totalSpent,
+        monthlySpent: data.monthlySpent,
         poCount: data.poCount,
       }))
       .sort((a, b) => b.totalSpent - a.totalSpent)

@@ -29,7 +29,9 @@ import {
   AlertCircle,
   Eye,
   FileText,
+  AlertTriangle,
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type DashboardStats = {
   totalPOs: number;
@@ -56,6 +58,7 @@ type TopSupplier = {
   supplierId: string;
   supplierName: string;
   totalSpent: number;
+  monthlySpent: number;
   poCount: number;
 };
 
@@ -153,12 +156,43 @@ export default function DashboardPage() {
     );
   }
 
+  // Calculate spending alerts
+  const criticalAlerts = topSuppliers.filter((s) => s.monthlySpent >= 100000);
+  const warningAlerts = topSuppliers.filter((s) => s.monthlySpent >= 80000 && s.monthlySpent < 100000);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">לוח בקרה</h1>
         <p className="text-gray-600">סקירה כללית של מערכת הרכש</p>
       </div>
+
+      {/* Spending Alerts */}
+      {criticalAlerts.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>אזהרת הוצאות קריטית</AlertTitle>
+          <AlertDescription>
+            הספקים הבאים חרגו מ-100,000 ₪ החודש:{' '}
+            <strong>{criticalAlerts.map((s) => s.supplierName).join(', ')}</strong>
+            {'. '}
+            סה&quot;כ: <strong>{criticalAlerts.reduce((sum, s) => sum + s.monthlySpent, 0).toLocaleString()} ₪</strong>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {warningAlerts.length > 0 && (
+        <Alert className="border-yellow-500 bg-yellow-50 text-yellow-800">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>אזהרת הוצאות</AlertTitle>
+          <AlertDescription>
+            הספקים הבאים התקרבו ל-100,000 ₪ החודש:{' '}
+            <strong>{warningAlerts.map((s) => s.supplierName).join(', ')}</strong>
+            {'. '}
+            סה&quot;כ: <strong>{warningAlerts.reduce((sum, s) => sum + s.monthlySpent, 0).toLocaleString()} ₪</strong>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -332,10 +366,19 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-left">
                       <p className="font-bold">{supplier.totalSpent.toLocaleString()} ₪</p>
-                      {supplier.totalSpent > 100000 && (
-                        <div className="flex items-center gap-1 text-xs text-orange-600">
+                      <p className="text-xs text-gray-500">
+                        החודש: {supplier.monthlySpent.toLocaleString()} ₪
+                      </p>
+                      {supplier.monthlySpent >= 100000 && (
+                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>חריגה חודשית</span>
+                        </div>
+                      )}
+                      {supplier.monthlySpent >= 80000 && supplier.monthlySpent < 100000 && (
+                        <div className="flex items-center gap-1 text-xs text-yellow-600 mt-1">
                           <AlertCircle className="h-3 w-3" />
-                          <span>מעל 100K</span>
+                          <span>התראה חודשית</span>
                         </div>
                       )}
                     </div>
